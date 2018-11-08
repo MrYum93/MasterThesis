@@ -12,6 +12,7 @@ Revision
 
 # imports
 import math
+from vpython import *
 from PIL import Image, ImageDraw
 
 # defines
@@ -22,14 +23,7 @@ class gcs_node:
     def __init__(self):
         pass
 
-    def first_methon(self):
-        # Damped spring-mass system driven by sinusoidal force
-        # FB - 201105017
-        imgx = 800
-        imgy = 600
-        image = Image.new("RGB", (imgx, imgy))
-        draw = ImageDraw.Draw(image)
-
+    def Euler2(self, f, xa, xb, ya, y1a, n):
         # Second Order ODE (y'' = f(x, y, y')) Solver using Euler method
         # n : number of steps (higher the better)
         # xa: initial value of independent variable
@@ -37,17 +31,17 @@ class gcs_node:
         # ya: initial value of dependent variable
         # y1a: initial value of first derivative of dependent variable
         # Returns value of y, y1 at xb.
-        def Euler2(f, xa, xb, ya, y1a, n):
-            h = (xb - xa) / float(n)
-            x = xa
-            y = ya
-            y1 = y1a
-            for i in range(n):
-                y1 += h * f(x, y, y1)
-                y += h * y1
-                x += h
-            return [y, y1]
+        h = (xb - xa) / float(n)
+        x = xa
+        y = ya
+        y1 = y1a
+        for i in range(n):
+            y1 += h * self.f(x, y, y1)
+            y += h * y1
+            x += h
+        return [y, y1]
 
+    def f(self, x, y, y1):
         # Damped spring-mass system driven by sinusoidal force
         # y'' = (F0 * math.cos(omega * t - phi) - b * y' - k * y) / m
         # y'' : acceleration
@@ -59,9 +53,15 @@ class gcs_node:
         phi = 0.0  # phase constant (rad)
         b = 0.0  # friction constant (Ns/m)
         k = 20.0  # spring constant (N/m)
-
-        def f(x, y, y1):
-            return (F0 * math.cos(omega * x - phi) - b * y1 - k * y) / m
+        return (F0 * math.cos(omega * x - phi) - b * y1 - k * y) / m
+    
+    def spring_mass(self):
+        # Damped spring-mass system driven by sinusoidal force
+        # FB - 201105017
+        imgx = 800
+        imgy = 600
+        image = Image.new("RGB", (imgx, imgy))
+        draw = ImageDraw.Draw(image)
 
         yaSim = 0.0  # initial position (m)
         y1aSim = 0.0  # initial velocity (m/s)
@@ -79,7 +79,7 @@ class gcs_node:
         for i in range(nSim):
             xa = xaSim + xdSim * i / nSim
             xb = xaSim + xdSim * (i + 1) / nSim
-            y_y1 = Euler2(f, xa, xb, ya, y1a, n)
+            y_y1 = self.Euler2(self.f, xa, xb, ya, y1a, n)
             ya = y_y1[0]
             y1a = y_y1[1]
             if ya < yMin:
@@ -95,15 +95,36 @@ class gcs_node:
             xb = xaSim + xdSim * (i + 1) / nSim
             kxa = (imgx - 1) * (xa - xaSim) / xdSim
             kya = (imgy - 1) * (ya - yMin) / (yMax - yMin)
-            y_y1 = Euler2(f, xa, xb, ya, y1a, n)
+            y_y1 = self.Euler2(self.f, xa, xb, ya, y1a, n)
             ya = y_y1[0]
             y1a = y_y1[1]
             kxb = (imgx - 1) * (xb - xaSim) / xdSim
             kyb = (imgy - 1) * (ya - yMin) / (yMax - yMin)
             draw.line((kxa, kya, kxb, kyb), (0, 255, 0))  # (r, g, b)
 
+        image.show("Spring_mass system simulation.png", "PNG")
         image.save("Spring_mass system simulation.png", "PNG")
+
+    def box_meth(self):
+        #display(width=600, height=600, center=vector(6, 0, 0), background=color.white)
+        wall = box(pos=vector(0, 1, 0), size=vector(0.2, 3, 2), color=color.green)
+        floor = box(pos=vector(6, -0.6, 0), size=vector(14, 0.2, 4), color=color.green)
+        Mass = box(pos=vector(12, 0, 0), velocity=vector(0, 0, 0), size=vector(1, 1, 1), mass=1.0, color=color.blue, )
+        pivot = vector(0, 0, 0)
+        spring = helix(pos=pivot, axis=Mass.pos - pivot, radius=0.4, constant=1, thickness=0.1, coils=20,
+                       color=color.red)
+        eq = vector(9, 0, 0)
+        t = 0
+        dt = 0.01
+        while (t < 50):
+            rate(100)
+            acc = (eq - Mass.pos) * (spring.constant / Mass.mass)
+            Mass.velocity = Mass.velocity + acc * dt
+            Mass.pos = Mass.pos + Mass.velocity * dt
+            spring.axis = Mass.pos - spring.pos
+            t = t + dt
+
 
 if __name__ == '__main__':
     obj = gcs_node()
-    obj.first_methon()
+    obj.box_meth()
