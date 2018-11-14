@@ -19,10 +19,6 @@ from plotly.tools import FigureFactory as FF
 import pandas as pd
 import scipy
 
-
-
-
-
 #We're using SI units
 class ar_model(object):
     def __init__(self):
@@ -30,14 +26,15 @@ class ar_model(object):
         self.plane_speed_list = []
         self.time_list = []
         self.arm_ang_list = []
-        self.rope_pos_list = []
+        self.rope_len_list = []
+        self.plane_acc_list = []
 
         self.time = 0
         self.plane_init_speed = 17.0
         self.plane_speed = 17.0
         self.plane_weight = 2.3
         self.spring_constant = 42
-        self.spring_n = 26 # 26 springs has a max load of 308
+        self.spring_n = 26*0.1 # 26 springs has a max load of 308
         self.displacement_plane = 0
         self.init_plane_e = 0
         self.inner_spring_arm = 0.105
@@ -71,9 +68,6 @@ class ar_model(object):
         plt.ylabel('Force', fontsize=16)
         plt.show()
 
-    def spring_force(self, displacement):
-        pass
-
     def force_to_acc(self, force, weight):
         return force/weight
 
@@ -91,6 +85,10 @@ class ar_model(object):
 
     def pos_to_acc(self, pos):
         return -(self.spring_constant / self.plane_weight) * pos
+
+    def plane_pos_to_rope_len(self, plane_pos):
+        rope_len = math.sqrt(1**2 + plane_pos**2)
+        return rope_len
 
     def arm_angle_to_vel_acc(self, time_list, ang_list):
         x = time_list
@@ -119,9 +117,9 @@ class ar_model(object):
 
         plt.show()
 
-    def rope_pos_to_vel_acc(self, time_list, ang_list):
+    def rope_pos_to_vel_acc(self, time_list, rope_pos_list):
         x = time_list
-        y = ang_list
+        y = rope_pos_list
         dy = np.zeros(y.__len__(), np.float)
         dyy = np.zeros(y.__len__(), np.float)
         dy[0:-1] = np.diff(y) / np.diff(x)
@@ -130,19 +128,19 @@ class ar_model(object):
         dyy[-1] = (dy[-1] - dy[-2]) / (x[-1] - x[-2])
 
         plt.subplot(3, 1, 1)
-        plt.plot(time_list, ang_list, 'r')
+        plt.plot(x, y, 'r')
         plt.xlabel('Time since hooking', fontsize=18)
-        plt.ylabel('Arm ang pos', fontsize=16)
+        plt.ylabel('Rope len', fontsize=16)
 
         plt.subplot(3, 1, 2)
-        plt.plot(time_list, dy, 'r')
+        plt.plot(x, dy, 'r')
         plt.xlabel('Time since hooking', fontsize=18)
-        plt.ylabel('Arm ang vel', fontsize=16)
+        plt.ylabel('Rope vel', fontsize=16)
 
         plt.subplot(3, 1, 3)
-        plt.plot(time_list, dyy, 'r')
+        plt.plot(x, dyy, 'r')
         plt.xlabel('Time since hooking', fontsize=18)
-        plt.ylabel('Arm ang acc', fontsize=16)
+        plt.ylabel('Rope acc', fontsize=16)
 
         plt.show()
 
@@ -166,20 +164,21 @@ class ar_model(object):
     def main(self):
         print("### Main begin ###")
         model = ar_model()
-        plane_acc_list = []
         self.init_plane_e = self.plane_energy(self.plane_speed)
         counter = 0
         while counter < 400:
             if(self.displacement_plane >= 5):
                 print("plane is more than 5 meters out")
                 break
-            delta_time = 0.01
+            delta_time = 0.001
+            self.time += delta_time
             delta_displacement_plane = self.plane_speed*delta_time
             self.displacement_plane += delta_displacement_plane
+            rope_len = self.plane_pos_to_rope_len(self.displacement_plane)
+            print("Rope length", rope_len)
 
             acc = self.pos_to_acc(0 - delta_displacement_plane)
             print("acceleration: ", acc)
-            self.time += delta_time
             # self.displacement += 0.01*self.plane_speed
             print("Plane displacement[m]: ", self.displacement_plane)
             current_arm_angle = self.displacement_to_angle(self.displacement_plane)
@@ -202,15 +201,16 @@ class ar_model(object):
             else:
                 plane_acc = (self.plane_speed - new_plane_speed) / delta_time
                 print("plane acc[m/s^2]", plane_acc)
-                plane_acc_list.append(plane_acc)
                 self.plane_speed = new_plane_speed
+                self.plane_acc_list.append(plane_acc)
+                self.rope_len_list.append(rope_len)
                 self.plane_speed_list.append(new_plane_speed)
                 self.time_list.append(self.time)
             print("")
             counter += 1
 
         self.arm_angle_to_vel_acc(self.time_list, self.arm_ang_list)
-        self.rope_pos_to_vel_acc(self.time_list, self.)
+        self.rope_pos_to_vel_acc(self.time_list, self.rope_len_list)
 
         # fig = plt.figure()
         # plt.subplot(2, 1, 1)
