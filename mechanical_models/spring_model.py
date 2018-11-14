@@ -13,19 +13,31 @@ YYYY-MM-DD
 import math
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy.integrate import odeint
+import plotly.plotly as py
+import plotly.graph_objs as go
+from plotly.tools import FigureFactory as FF
+import pandas as pd
+import scipy
+
+
+
+
 
 #We're using SI units
 class ar_model(object):
     def __init__(self):
+        # lists
+        self.plane_speed_list = []
+        self.time_list = []
+        self.arm_ang_list = []
+        self.rope_pos_list = []
+
         self.time = 0
         self.plane_init_speed = 17.0
         self.plane_speed = 17.0
         self.plane_weight = 2.3
         self.spring_constant = 42
         self.spring_n = 26 # 26 springs has a max load of 308
-        self.plane_speed_list = []
-        self.time_list = []
         self.displacement_plane = 0
         self.init_plane_e = 0
         self.inner_spring_arm = 0.105
@@ -80,6 +92,60 @@ class ar_model(object):
     def pos_to_acc(self, pos):
         return -(self.spring_constant / self.plane_weight) * pos
 
+    def arm_angle_to_vel_acc(self, time_list, ang_list):
+        x = time_list
+        y = ang_list
+        dy = np.zeros(y.__len__(), np.float)
+        dyy = np.zeros(y.__len__(), np.float)
+        dy[0:-1] = np.diff(y) / np.diff(x)
+        dyy[0:-1] = np.diff(dy) / np.diff(x)
+        dy[-1] = (y[-1] - y[-2]) / (x[-1] - x[-2])
+        dyy[-1] = (dy[-1] - dy[-2]) / (x[-1] - x[-2])
+
+        plt.subplot(3, 1, 1)
+        plt.plot(time_list, ang_list, 'r')
+        plt.xlabel('Time since hooking', fontsize=18)
+        plt.ylabel('Arm ang pos', fontsize=16)
+
+        plt.subplot(3, 1, 2)
+        plt.plot(time_list, dy, 'r')
+        plt.xlabel('Time since hooking', fontsize=18)
+        plt.ylabel('Arm ang vel', fontsize=16)
+
+        plt.subplot(3, 1, 3)
+        plt.plot(time_list, dyy, 'r')
+        plt.xlabel('Time since hooking', fontsize=18)
+        plt.ylabel('Arm ang acc', fontsize=16)
+
+        plt.show()
+
+    def rope_pos_to_vel_acc(self, time_list, ang_list):
+        x = time_list
+        y = ang_list
+        dy = np.zeros(y.__len__(), np.float)
+        dyy = np.zeros(y.__len__(), np.float)
+        dy[0:-1] = np.diff(y) / np.diff(x)
+        dyy[0:-1] = np.diff(dy) / np.diff(x)
+        dy[-1] = (y[-1] - y[-2]) / (x[-1] - x[-2])
+        dyy[-1] = (dy[-1] - dy[-2]) / (x[-1] - x[-2])
+
+        plt.subplot(3, 1, 1)
+        plt.plot(time_list, ang_list, 'r')
+        plt.xlabel('Time since hooking', fontsize=18)
+        plt.ylabel('Arm ang pos', fontsize=16)
+
+        plt.subplot(3, 1, 2)
+        plt.plot(time_list, dy, 'r')
+        plt.xlabel('Time since hooking', fontsize=18)
+        plt.ylabel('Arm ang vel', fontsize=16)
+
+        plt.subplot(3, 1, 3)
+        plt.plot(time_list, dyy, 'r')
+        plt.xlabel('Time since hooking', fontsize=18)
+        plt.ylabel('Arm ang acc', fontsize=16)
+
+        plt.show()
+
     def mass_spring_odeint(self, init_state, t):
         # unpack the state vector
         x = init_state[0]
@@ -98,76 +164,74 @@ class ar_model(object):
         return [xd, xdd]
 
     def main(self):
-        pass
-        # state0 = [0.0, 17.0]#self.plane_init_speed] # location, vel
-        # t = np.arange(0.0, 10.0, 0.1)
+        print("### Main begin ###")
+        model = ar_model()
+        plane_acc_list = []
+        self.init_plane_e = self.plane_energy(self.plane_speed)
+        counter = 0
+        while counter < 400:
+            if(self.displacement_plane >= 5):
+                print("plane is more than 5 meters out")
+                break
+            delta_time = 0.01
+            delta_displacement_plane = self.plane_speed*delta_time
+            self.displacement_plane += delta_displacement_plane
+
+            acc = self.pos_to_acc(0 - delta_displacement_plane)
+            print("acceleration: ", acc)
+            self.time += delta_time
+            # self.displacement += 0.01*self.plane_speed
+            print("Plane displacement[m]: ", self.displacement_plane)
+            current_arm_angle = self.displacement_to_angle(self.displacement_plane)
+            self.arm_ang_list.append(current_arm_angle)
+            print("Current arm angle[degrees]: ", current_arm_angle*180/3.14)
+            displacement_spring = self.angle_to_spring_stretch(current_arm_angle)
+            print("Spring_displacement[m]: ", displacement_spring)
+            e_spring = self.spring_energy(displacement_spring) * self.spring_n * 2
+            print("E_spring[J]: ", e_spring)
+            e_plane = self.plane_energy(self.plane_speed)
+            new_e_plane = self.init_plane_e - e_spring
+            print("E_plane[J]: ", new_e_plane)
+            try:
+                new_plane_speed = math.sqrt(new_e_plane/(0.5*self.plane_weight))
+                print("Old plane speed[v/m]: ", self.plane_speed)
+                print("New plane speed[v/m]: ", new_plane_speed)
+            except:
+                print("can't do sqrt to a negative number, exiting self loop")
+                break
+            else:
+                plane_acc = (self.plane_speed - new_plane_speed) / delta_time
+                print("plane acc[m/s^2]", plane_acc)
+                plane_acc_list.append(plane_acc)
+                self.plane_speed = new_plane_speed
+                self.plane_speed_list.append(new_plane_speed)
+                self.time_list.append(self.time)
+            print("")
+            counter += 1
+
+        self.arm_angle_to_vel_acc(self.time_list, self.arm_ang_list)
+        self.rope_pos_to_vel_acc(self.time_list, self.)
+
+        # fig = plt.figure()
+        # plt.subplot(2, 1, 1)
+        # plt.plot(self.time_list, self.plane_speed_list, 'r')
+        # fig.suptitle('Plane speed', fontsize=20)
+        # plt.xlabel('Time since hooking', fontsize=18)
+        # plt.ylabel('Plane speed', fontsize=16)
         #
-        # state = odeint(self.mass_spring_odeint, state0, t)
+        # plt.subplot(2, 1, 2)
+        # plt.plot(self.time_list, plane_acc_list, 'r')
+        # fig.suptitle('Plane acc', fontsize=20)
+        # plt.xlabel('Time since hooking', fontsize=18)
+        # plt.ylabel('Plane acc', fontsize=16)
         #
-        # print("What is the state?: ", state)
-        # plt.plot(t, state)
-        # plt.xlabel('TIME (sec)')
-        # plt.ylabel('STATES')
-        # plt.title('Mass-Spring System')
-        # plt.legend(('$x$ (m)', '$\dot{x}$ (m/sec)'))
         # plt.show()
-
-
-def main():
-    print("### Main begin ###")
-    model = ar_model()
-    model.init_plane_e = model.plane_energy(model.plane_speed)
-    counter = 0
-    while counter < 400:
-        if(model.displacement_plane >= 5):
-            print("plane is more than 5 meters out")
-            break
-        delta_time = 0.01
-        delta_displacement_plane = model.plane_speed*delta_time
-        model.displacement_plane += delta_displacement_plane
-
-        acc = model.pos_to_acc(0 - delta_displacement_plane)
-        print("acceleration: ", acc)
-        model.time += delta_time
-        # model.displacement += 0.01*model.plane_speed
-        print("Plane displacement[m]: ", model.displacement_plane)
-        current_arm_angle = model.displacement_to_angle(model.displacement_plane)
-        print("Current arm angle[degrees]: ", current_arm_angle*180/3.14)
-        displacement_spring = model.angle_to_spring_stretch(current_arm_angle)
-        print("Spring_displacement[m]: ", displacement_spring)
-        e_spring = model.spring_energy(displacement_spring) * model.spring_n * 2
-        print("E_spring[J]: ", e_spring)
-        e_plane = model.plane_energy(model.plane_speed)
-        new_e_plane = model.init_plane_e - e_spring
-        print("E_plane[J]: ", new_e_plane)
-        try:
-            new_plane_speed = math.sqrt(new_e_plane/(0.5*model.plane_weight))
-            print("Old plane speed[v/m]: ", model.plane_speed)
-            print("New plane speed[v/m]: ", new_plane_speed)
-        except:
-            print("can't do sqrt to a negative number, exiting model loop")
-            break
-        else:
-            plane_acc = (model.plane_speed - new_plane_speed) / delta_time
-            print(plane_acc)
-            model.plane_speed = new_plane_speed
-            model.plane_speed_list.append(new_plane_speed)
-            model.time_list.append(model.time)
-        print("")
-        counter += 1
-
-    fig = plt.figure()
-    plt.plot(model.time_list, model.plane_speed_list, 'ro')
-    fig.suptitle('Plane speed', fontsize=20)
-    plt.xlabel('Time since hooking', fontsize=18)
-    plt.ylabel('Plane speed', fontsize=16)
-    plt.show()
-    # if KeyboardInterrupt():
-    #     exit()
-    print("### Main end ###")
+        # if KeyboardInterrupt():
+        #     exit()
+        print("### Main end ###")
 
 
 if __name__ == "__main__":
-    # model = ar_model(); model.main() # spring_forcediagram()
-    main()
+    model = ar_model()
+    model.main() # spring_forcediagram()
 
