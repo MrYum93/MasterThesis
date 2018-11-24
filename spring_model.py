@@ -41,16 +41,16 @@ def main():
         delta_time = 0.01
         delta_displacement = model.plane_speed*delta_time
 
-        model.displacement += delta_displacement
+        model.displacement += delta_displacement	
 
 
 
         model.time += delta_time
         #model.displacement += 0.01*model.plane_speed
         print model.displacement
-        current_angle = model.displacement_to_angle(model.displacement)
+        #current_angle = model.displacement_to_angle(model.displacement)
         print "Current angle[degrees]: ", current_angle*180/3.14
-        spring_displacement = model.angle_to_spring_stretch(current_angle)
+        #spring_displacement = model.angle_to_spring_stretch(current_angle)
         print "Spring_displacement: ", spring_displacement
         e_spring = model.spring_energy(model.displacement)
         print "E_spring: ", e_spring
