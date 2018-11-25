@@ -8,6 +8,8 @@ Revision
 YYYY-MM-DD
 2018-11-08 MB First
 2018-11-09 MW Added spring parameters
+2018-11-25 MW Now the spring catches the plane and dampens it by some random number
+              that is later to be the motors of the system
 '''
 
 import math
