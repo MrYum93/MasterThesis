@@ -59,7 +59,7 @@ class spring(object): #https://www.thespringstore.com/pe028-375-94768-mw-3160-mh
         self.spring_constant = 42
         self.spring_equilibrum = self.neutral_length
 
-        self.pre_stretched = 0.1
+        self.pre_stretched = 0.03
         self.current_stretch = self.pre_stretched
         self.spring_force = -self.spring_constant*self.current_stretch
         self.energy_stored = 0.5*self.spring_constant*self.current_stretch**2
@@ -86,7 +86,7 @@ def run_simu(model):
         #Looking at the planes movement in delta t
         delta_x = model.plane.speed*model.delta_t
         model.plane.x += delta_x
-        current_spring_stretch = model.plane_x_to_spring_stretch(model.plane.x, 0.1+80/1000)
+        current_spring_stretch = model.plane_x_to_spring_stretch(model.plane.x, model.l_s.neutral_length+model.l_s.pre_stretched)
         model.l_s.current_stretch = current_spring_stretch
         model.r_s.current_stretch = current_spring_stretch
         total_spring_force = (model.l_s.spring_force + model.r_s.spring_force)*model.no_of_springs/2
@@ -103,10 +103,21 @@ def run_simu(model):
 
 
 # Set up plot
-plot = figure(plot_height=400, plot_width=400, title="My simulation",
+plot_pos = figure(plot_height=400, plot_width=400, title="Position plot",
               tools="crosshair,pan,reset,save,wheel_zoom",  x_range=[0, 4*np.pi], y_range=[-2.5, 2.5])
-source = ColumnDataSource(data=dict(x=model.time_list, y=model.plane.speed_list))
-plot.line('x', 'y', source=source, line_width=3, line_alpha=0.6)
+source_pos = ColumnDataSource(data=dict(x=model.time_list, pos=model.plane.x_list))
+plot_pos.line('t', 'pos', source=source_pos, line_width=3, line_alpha=0.6)
+
+plot_spring_force = figure(plot_height=400, plot_width=400, title="Spring force",
+              tools="crosshair,pan,reset,save,wheel_zoom",  x_range=[0, 4*np.pi], y_range=[-2.5, 2.5])
+source_spring_force = ColumnDataSource(data=dict(t=model.time_list, y=model.plane.speed_list))
+plot_spring_force.line('t', 'f_spring', source=source_spring_force, line_width=3, line_alpha=0.6)
+
+plot_vel = figure(plot_height=400, plot_width=400, title="Velocity plot",
+              tools="crosshair,pan,reset,save,wheel_zoom",  x_range=[0, 4*np.pi], y_range=[-2.5, 2.5])
+source_vel = ColumnDataSource(data=dict(t=model.time_list, y=model.plane.speed_list))
+plot_vel.line('t', 'velocity', source=source_vel, line_width=3, line_alpha=0.6)
+
 
 # Set up widgets
 time_max_s = Slider(title="Simulation time", value=1.0, start=1, end=20, step=0.1)
@@ -128,9 +139,9 @@ def update_data(attrname, old, new):
     # Generate the new curve
     run_simu(model)
 
-    source.data = dict(x=model.time_list, y=model.plane.x_list)
-
-
+    source_pos.data =          dict(t=model.time_list, pos=model.plane.x_list)
+    source_spring_force.data = dict(t=model.time_list, f_spring=model.l_s.spring_force_list)
+    source_vel.data =          dict(t=model.time_list, velocity=model.plane.speed_list)
 
 time_max_s = Slider(title="Simulation time", value=1.0, start=1, end=20, step=0.1)
 no_springs_s = Slider(title="Number of springs", value=2.0, start=2, end=40, step=2)
@@ -143,7 +154,7 @@ for w in [time_max_s, no_springs_s, plane_weight_s, init_plane_speed_s]:
 # Set up layouts and add to document
 inputs = widgetbox(time_max_s, no_springs_s, plane_weight_s, init_plane_speed_s)
 
-curdoc().add_root(row(inputs, plot, width=800))
+curdoc().add_root(row(inputs, plot_pos, plot_vel, plot_spring_force, width=800))
 curdoc().title = "Sliders"
 
 
