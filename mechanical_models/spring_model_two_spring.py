@@ -13,8 +13,10 @@ YYYY-MM-DD
 import math
 import numpy as np
 import matplotlib.pyplot as plt
-# import zip
-# from operator import add
+import sys
+
+# defines
+EPS = sys.float_info.min
 
 # We're using SI units
 class ar_model(object):
@@ -34,7 +36,7 @@ class ar_model(object):
 
         self.time = 0.0
         self.delta_t = 0.01
-        self.plane_mass = 2.3
+        self.plane_mass = 2.6
         self.plane_pos = 0.105  # where the mass / plane is hooked on
         self.plane_vel = 17.0
         self.plane_acc = 0
@@ -52,7 +54,7 @@ class ar_model(object):
         self.e_plane = 0
         self.e_spring = 0
         self.e_loss = 10  # percent. Might not be usaable
-        self.dist_between_arms = 1
+        self.dist_between_spring_anchor_points = self.spring_start_stretch*2
 
     def spring_forcediagram(self):
         start_f = 0
@@ -135,9 +137,6 @@ class ar_model(object):
 
         plt.show()
 
-    def energy(self):
-        energy = 0.5 * self.spring_k * self.plane_pos**2
-
     def total_energy(self, kinetic_list, potential_list, time_list):
         x = time_list
         p = potential_list
@@ -174,37 +173,27 @@ class ar_model(object):
         self.plane_vel_l.append(self.spring_init_vel)
         self.plane_acc_l.append(self.plane_acc)
         self.time_l.append(self.time)
-        # self.plane_k_e_l.append(self.plane_k_e)
-        # self.spring_u_e_l.append(self.spring_u_e)
-        # self.plane_pos_l.append(self.plane_pos)
-        # self.plane_vel_l.append(self.spring_init_vel)
-        # self.plane_acc_l.append(self.plane_acc)
-        # self.time_l.append(self.time)
 
-        epsilon = 0.000000000000000000001
         damping = 0.9
 
         cnt = 0
-        while self.time < 15:
+        while self.time < 5:
             # First we have an acceleration from prev time-step then a new vel and finally a new pos,
             # lastly increment the time
 
-            # self.plane_vel = (self.plane_pos - self.plane_pos_l[cnt-1]) / \
-            #                  ((self.time_l[cnt] - self.time_l[cnt-1]) + epsilon)
-            # self.plane_acc = (self.plane_vel - self.plane_vel_l[cnt-1]) / \
-            #                  ((self.time_l[cnt] - self.time_l[cnt-1]) + epsilon)
-            # self.plane_acc = (self.spring_equilibrium - self.plane_pos) * (self.spring_k / self.plane_mass)
+            # f_external = self.plane_mass * self.plane_acc # the plane contrib is 0
+            # print("start stretch:! ", self.spring_start_stretch)
+            if self.plane_pos > 0:
+                print("pythagoras", (math.sqrt(self.plane_pos**2 + self.spring_start_stretch**2)))
+                f_spring_one = - self.spring_k * (math.sqrt(self.plane_pos**2 + self.spring_start_stretch**2) - self.spring_equilibrium)
+                f_spring_two = - self.spring_k * (math.sqrt(self.plane_pos**2 + self.spring_start_stretch**2) - self.spring_equilibrium)
+            else:
+                print("pythagoras", -(math.sqrt(self.plane_pos**2 + self.spring_start_stretch**2)))
+                f_spring_one = - self.spring_k * (- math.sqrt(self.plane_pos**2 + self.spring_start_stretch**2) - self.spring_equilibrium)
+                f_spring_two = - self.spring_k * (- math.sqrt(self.plane_pos**2 + self.spring_start_stretch**2) - self.spring_equilibrium)
 
-            print("pos0 vs pos1", self.plane_pos_l[cnt-1], self.plane_pos_l[cnt])
-            print("vel0 vs vel1", self.plane_vel_l[cnt-1], self.plane_vel_l[cnt])
-            print("acc0 vs acc1", self.plane_acc_l[cnt-1], self.plane_acc_l[cnt])
-
-            self.plane_acc = (self.spring_equilibrium - self.plane_pos) * (self.spring_k / self.plane_mass)
-
-            f_external = self.plane_mass * self.plane_acc # the plane contrib
-            f_spring = - self.spring_k * self.plane_pos # the spring contrib
-            f_damper = - damping * self.plane_vel # the dampening
-            f_spring_system = f_external + f_spring + f_damper
+            f_damper = 0#- damping * self.plane_vel # the dampening
+            f_spring_system = f_spring_one + f_spring_two + f_damper
 
             self.plane_acc = f_spring_system / self.plane_mass
             self.plane_vel += self.plane_acc * self.delta_t
@@ -213,8 +202,11 @@ class ar_model(object):
             self.plane_k_e = 0.5 * self.plane_mass * self.plane_vel**2
             self.spring_u_e = 0.5 * self.spring_k * self.plane_pos**2
 
-            print("F_ex", f_external)
-            print("F_sp", f_spring)
+            print("pos0 vs pos1", self.plane_pos_l[cnt-1], self.plane_pos_l[cnt])
+            print("vel0 vs vel1", self.plane_vel_l[cnt-1], self.plane_vel_l[cnt])
+            print("acc0 vs acc1", self.plane_acc_l[cnt-1], self.plane_acc_l[cnt])
+            print("F_sp1", f_spring_one)
+            print("F_sp2", f_spring_two)
             print("F_dm", f_damper)
             print("F_ss", f_spring_system)
 
@@ -231,6 +223,7 @@ class ar_model(object):
 
         self.pos_to_vel_acc(self.time_l, self.plane_pos_l, "Plane")
         # self.total_energy(self.plane_k_e_l, self.spring_u_e_l, self.time_l)
+        # self.spring_forcediagram()
 
 if __name__ == "__main__":
     model = ar_model()

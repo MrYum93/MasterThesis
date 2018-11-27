@@ -17,6 +17,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 import sys
 
+# defines
+EPS = sys.float_info.min
+
+
 # We're using SI units
 class ar_model(object):
     def __init__(self):
@@ -190,7 +194,6 @@ class ar_model(object):
         self.plane_acc_l.append(self.plane_acc)
         self.time_l.append(self.time)
 
-        epsilon = sys.float_info.min
         damping = 2
 
         cnt = 0
