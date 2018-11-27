@@ -24,8 +24,10 @@ class simple_model(object):
 
     def plane_x_to_spring_stretch(self, plane_x, distance_to_mount_point):
 
-        return math.sqrt(plane_x**2+distance_to_mount_point**2)
-
+        if plane_x > 0:
+            return math.sqrt(plane_x**2+distance_to_mount_point**2)-self.l_s.spring_equilibrum
+        else:
+            return -math.sqrt(plane_x**2+distance_to_mount_point**2)-self.l_s.spring_equilibrum
 
     def log(self):
         self.time_list.append(self.time)
@@ -55,6 +57,7 @@ class spring(object): #https://www.thespringstore.com/pe028-375-94768-mw-3160-mh
     def __init__(self):
         self.neutral_length = 80/1000
         self.spring_constant = 42
+        self.spring_equilibrum = self.neutral_length
 
         self.pre_stretched = 0.1
         self.current_stretch = self.pre_stretched
@@ -89,10 +92,9 @@ def run_simu(model):
         total_spring_force = (model.l_s.spring_force + model.r_s.spring_force)*model.no_of_springs/2
 
         #This force will accelerate the plane according to newtons second law
-        if model.plane.x > 0: #The springs will accelerate in the opposite direction of the planes movement
-            a = total_spring_force/model.plane.weight
-        else:
-            a = -total_spring_force/model.plane.weight
+         #The springs will accelerate in the opposite direction of the planes movement
+        a = total_spring_force/model.plane.weight
+
         delta_v = a*model.delta_t
         model.plane.speed += delta_v
         model.time += model.delta_t
@@ -132,7 +134,7 @@ def update_data(attrname, old, new):
 
 time_max_s = Slider(title="Simulation time", value=1.0, start=1, end=20, step=0.1)
 no_springs_s = Slider(title="Number of springs", value=2.0, start=2, end=40, step=2)
-plane_weight_s = Slider(title="Fixed-wing weight", value=2.6, start=0.2, end=5)
+plane_weight_s = Slider(title="Fixed-wing weight", value=2.6, start=0.2, end=5, step=0.1)
 init_plane_speed_s = Slider(title="Initial speed of fixed-wing", value=17, start=5, end=30, step=0.1)
 
 for w in [time_max_s, no_springs_s, plane_weight_s, init_plane_speed_s]:
