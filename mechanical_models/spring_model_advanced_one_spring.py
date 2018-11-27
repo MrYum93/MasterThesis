@@ -237,7 +237,7 @@ class ar_model(object):
 
             cnt += 1
     
-        self.pos_to_vel_acc(self.time_l, self.plane_pos_l, "Plane")
+        self.pos_to_vel_acc(self.time_l, self.plane_pos_l, "One spring advanced")
         self.total_energy(self.plane_k_e_l, self.spring_u_e_l, self.time_l)
 
 if __name__ == "__main__":

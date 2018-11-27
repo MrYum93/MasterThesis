@@ -35,7 +35,7 @@ class ar_model(object):
         self.plane_init_vel = 17
 
         self.time = 0.0
-        self.delta_t = 0.01
+        self.delta_t = 0.001
         self.plane_mass = 2.6
         self.plane_pos = 0.105  # where the mass / plane is hooked on
         self.plane_vel = 17.0
@@ -174,7 +174,7 @@ class ar_model(object):
         self.plane_acc_l.append(self.plane_acc)
         self.time_l.append(self.time)
 
-        damping = 0.9
+        damping = 2
 
         cnt = 0
         while self.time < 5:
@@ -192,7 +192,7 @@ class ar_model(object):
                 f_spring_one = - self.spring_k * (- math.sqrt(self.plane_pos**2 + self.spring_start_stretch**2) - self.spring_equilibrium)
                 f_spring_two = - self.spring_k * (- math.sqrt(self.plane_pos**2 + self.spring_start_stretch**2) - self.spring_equilibrium)
 
-            f_damper = 0#- damping * self.plane_vel # the dampening
+            f_damper = - damping * self.plane_vel # the dampening
             f_spring_system = f_spring_one + f_spring_two + f_damper
 
             self.plane_acc = f_spring_system / self.plane_mass
@@ -221,7 +221,7 @@ class ar_model(object):
 
             cnt += 1
 
-        self.pos_to_vel_acc(self.time_l, self.plane_pos_l, "Plane")
+        self.pos_to_vel_acc(self.time_l, self.plane_pos_l, "Two springs")
         # self.total_energy(self.plane_k_e_l, self.spring_u_e_l, self.time_l)
         # self.spring_forcediagram()
 
