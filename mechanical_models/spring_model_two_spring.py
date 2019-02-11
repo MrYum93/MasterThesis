@@ -30,6 +30,8 @@ class ar_model(object):
         self.time_l = []
         self.spring_u_e_l = []
         self.plane_k_e_l = []
+        self.total_force_l = []
+        self.all_purpose_l = []
 
         self.spring_init_vel = 0
         self.plane_init_vel = 17
@@ -37,7 +39,10 @@ class ar_model(object):
         self.time = 0.0
         self.delta_t = 0.001
         self.plane_mass = 2.6
-        self.plane_pos = 0.105  # where the mass / plane is hooked on
+        self.spring_arm_inner = 0.105
+        self.spring_arm_outer = 0.2165
+        self.spring_start_stretch = self.spring_arm_outer - self.spring_arm_inner
+        self.plane_pos = 0  # where the mass / plane is hooked on
         self.plane_vel = 17.0
         self.plane_acc = 0
         self.plane_displacement = 0
@@ -45,9 +50,6 @@ class ar_model(object):
         self.spring_k = 42
         self.spring_equilibrium = 0.08
         self.spring_n = 26*0.1 # 26 springs has a max load of 308
-        self.spring_arm_inner = 0.105
-        self.spring_arm_outer = 0.2165
-        self.spring_start_stretch = self.spring_arm_outer - self.spring_arm_inner
         self.spring_u_e = 0.5 * self.spring_k * self.plane_pos**2
         self.max_spring_stretch = self.max_spring_stretch_method()
         self.max_spring_load = 12.900
@@ -81,26 +83,6 @@ class ar_model(object):
         l2 = self.spring_arm_outer * math.sin(math.pi/4)
         hyp = math.sqrt((l1 + l2)**2 + l1**2)
         return hyp
-
-    def force_to_acc(self, force, weight):
-        return force/weight
-
-    def spring_energy(self, displacement):
-        return 0.5*self.spring_k*(displacement)**2
-
-    def plane_energy(self, plane_speed):
-        return 0.5*self.plane_mass*(plane_speed)**2
-
-    def angle_to_spring_stretch(self, angle):
-        return math.sqrt((self.spring_arm_inner*math.sin(angle))**2 +
-                         (-self.spring_arm_inner*math.cos(angle) + self.spring_arm_outer)**2)
-
-    def displacement_to_angle(self, x, y):
-        return math.atan(y/x)
-
-    def plane_pos_to_rope_len(self, plane_pos):
-        rope_len = math.sqrt(1**2 + plane_pos**2)
-        return rope_len
 
     def pos_to_vel_acc(self, time_list, pos_list, title=""):
         x = time_list
@@ -172,6 +154,8 @@ class ar_model(object):
         self.plane_pos_l.append(self.plane_pos)
         self.plane_vel_l.append(self.spring_init_vel)
         self.plane_acc_l.append(self.plane_acc)
+        self.total_force_l.append(0)
+        self.all_purpose_l.append(0)
         self.time_l.append(self.time)
 
         damping = 2
@@ -183,16 +167,15 @@ class ar_model(object):
 
             # f_external = self.plane_mass * self.plane_acc # the plane contrib is 0
             # print("start stretch:! ", self.spring_start_stretch)
+            spring_stretch = (math.sqrt(self.plane_pos**2 + self.spring_start_stretch**2) - self.spring_equilibrium)
             if self.plane_pos > 0:
-                print("pythagoras", (math.sqrt(self.plane_pos**2 + self.spring_start_stretch**2)))
                 f_spring_one = - self.spring_k * (math.sqrt(self.plane_pos**2 + self.spring_start_stretch**2) - self.spring_equilibrium)
                 f_spring_two = - self.spring_k * (math.sqrt(self.plane_pos**2 + self.spring_start_stretch**2) - self.spring_equilibrium)
             else:
-                print("pythagoras", -(math.sqrt(self.plane_pos**2 + self.spring_start_stretch**2)))
                 f_spring_one = - self.spring_k * (- math.sqrt(self.plane_pos**2 + self.spring_start_stretch**2) - self.spring_equilibrium)
                 f_spring_two = - self.spring_k * (- math.sqrt(self.plane_pos**2 + self.spring_start_stretch**2) - self.spring_equilibrium)
 
-            f_damper = - damping * self.plane_vel # the dampening
+            f_damper = 0#- damping * self.plane_vel # the dampening
             f_spring_system = f_spring_one + f_spring_two + f_damper
 
             self.plane_acc = f_spring_system / self.plane_mass
@@ -217,12 +200,16 @@ class ar_model(object):
             self.plane_pos_l.append(self.plane_pos)
             self.plane_vel_l.append(self.plane_vel)
             self.plane_acc_l.append(self.plane_acc)
+            self.total_force_l.append(f_spring_system)
+            self.all_purpose_l.append(spring_stretch)
             self.time_l.append(self.time)
 
             cnt += 1
 
+
         self.pos_to_vel_acc(self.time_l, self.plane_pos_l, "Two springs")
-        # self.total_energy(self.plane_k_e_l, self.spring_u_e_l, self.time_l)
+        # self.pos_to_vel_acc(self.time_l, self.all_purpose_l, "spring stretch disregard two last plots")
+        # self.total_energy(self.plane_k_e_l, self.spring_u_e_l, self.time_l) # k_u is not correct
         # self.spring_forcediagram()
 
 if __name__ == "__main__":
