@@ -106,6 +106,7 @@ class ar_model(object):
     def pos_to_vel_acc(self, time_list, pos_list, title=""):
         x = time_list
         y = pos_list
+        print(y)
 
         dy = np.zeros(y.__len__(), np.float)
         dyy = np.zeros(y.__len__(), np.float)

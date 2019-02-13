@@ -206,11 +206,11 @@ class ar_model(object):
 
             cnt += 1
 
-
         self.pos_to_vel_acc(self.time_l, self.plane_pos_l, "Two springs")
         # self.pos_to_vel_acc(self.time_l, self.all_purpose_l, "spring stretch disregard two last plots")
         # self.total_energy(self.plane_k_e_l, self.spring_u_e_l, self.time_l) # k_u is not correct
         # self.spring_forcediagram()
+
 
 if __name__ == "__main__":
     model = ar_model()
