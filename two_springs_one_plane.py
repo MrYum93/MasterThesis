@@ -101,11 +101,12 @@ def run_simu(model):
         model.log()
 
 
-
+run_simu(model)
 # Set up plot
 plot_pos = figure(plot_height=400, plot_width=400, title="Position plot",
               tools="crosshair,pan,reset,save,wheel_zoom",  x_range=[0, 4*np.pi], y_range=[-2.5, 2.5])
 source_pos = ColumnDataSource(data=dict(x=model.time_list, pos=model.plane.x_list))
+print source_pos
 plot_pos.line('t', 'pos', source=source_pos, line_width=3, line_alpha=0.6)
 
 plot_spring_force = figure(plot_height=400, plot_width=400, title="Spring force",
@@ -148,14 +149,27 @@ no_springs_s = Slider(title="Number of springs", value=2.0, start=2, end=40, ste
 plane_weight_s = Slider(title="Fixed-wing weight", value=2.6, start=0.2, end=5, step=0.1)
 init_plane_speed_s = Slider(title="Initial speed of fixed-wing", value=17, start=5, end=30, step=0.1)
 
+
 for w in [time_max_s, no_springs_s, plane_weight_s, init_plane_speed_s]:
     w.on_change('value', update_data)
 
 # Set up layouts and add to document
 inputs = widgetbox(time_max_s, no_springs_s, plane_weight_s, init_plane_speed_s)
 
-curdoc().add_root(row(inputs, plot_pos, plot_vel, plot_spring_force, width=800))
-curdoc().title = "Sliders"
+
+#widgets = column(ticker1, ticker2, stats)
+#main_row = row(corr, widgets)
+#series = column(ts1, ts2)
+#layout = column(main_row, series)
+
+
+p = figure()
+p.line(x=[1, 2, 3], y=[4,6,2])
+curdoc().add_root(p)
+
+
+#curdoc().add_root(plot_spring_force)#, width=800)#(row(inputs, plot_pos, plot_vel, plot_spring_force, width=800))
+#curdoc().title = "Sliders"
 
 
 print "Ran this script"
