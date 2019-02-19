@@ -96,7 +96,7 @@ def fw_x_to_motor_r(fw_x):
         #print("RPM", RPM, "Diameter", diameter)
         global last_omega
         if last_omega != 0:
-            omega = rope_speed/(diameter*0.5)
+            omega = rope_speed/(r)
             omega_list.append(omega)
             #print("Omega", omega)
             delta_omega = omega - last_omega
@@ -106,12 +106,12 @@ def fw_x_to_motor_r(fw_x):
             acceleration_torque_list.append(0.008*alpha)
             #print("Alpha", alpha)
 
-        last_omega = rope_speed/(diameter*0.5)
+        last_omega = rope_speed/(r)
 
     last_rope_unwinded = rope_unwinded
 
 
-    return diameter
+    return r
 
 fw_mass = 1
 fw_speed = 17.0
@@ -139,8 +139,8 @@ while(fw_speed > 0):
     fw_position += fw_speed*delta_t
     #print("Fw position", fw_position)
     position_list.append(fw_position)
-    motor_diameter = fw_x_to_motor_r(fw_position)
-    motor_radius = motor_diameter/2
+    motor_radius = fw_x_to_motor_r(fw_position)
+    #motor_radius = motor_diameter/2
     torque = braking_force_one_motor*motor_radius
     time += delta_t
     time_list.append(time)
