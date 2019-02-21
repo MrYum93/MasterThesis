@@ -11,7 +11,7 @@ acceleration_torque_list = []
 RPM_list = []
 radius_list = []
 length_list = []
-
+rope_speed_list = []
 
 def pre_compute_spiral():
     start_r = 0.015
@@ -86,10 +86,13 @@ def fw_x_to_motor_r(fw_x):
     global omega_list
     global acceleration_torque_list
     global RPM_list
+    global rope_speed_list
+
     if last_rope_unwinded != 0:
         delta_r_u = rope_unwinded - last_rope_unwinded
         #print("Delta RU", delta_r_u)
         rope_speed = delta_r_u / 0.001
+        rope_speed_list.append(rope_speed)
         #r = diameter/2
         RPM = rope_speed /(r*0.10472)
         RPM_list.append(RPM)
@@ -151,23 +154,23 @@ while(fw_speed > 0):
     fw_speed = fw_momentum/fw_mass
     speed_list.append(fw_speed)
     torque_list.append(torque)
-
+plt.style.use('fivethirtyeight')
 fig = plt.figure()
-plt.plot(time_list, speed_list, 'ro')
+plt.plot(time_list, speed_list)
 fig.suptitle('fw speed', fontsize=20)
 plt.xlabel('Time since hooking', fontsize=18)
 plt.ylabel('Fw speed', fontsize=16)
 plt.show()
 
 fig = plt.figure()
-plt.plot(time_list, position_list, 'ro')
+plt.plot(time_list, position_list)
 fig.suptitle('fw position', fontsize=20)
 plt.xlabel('Time since hooking', fontsize=18)
 plt.ylabel('Fw position', fontsize=16)
 plt.show()
 
 fig = plt.figure()
-plt.plot(time_list, torque_list, 'ro')
+plt.plot(time_list, torque_list)
 fig.suptitle('motor torque', fontsize=20)
 plt.xlabel('Time since hooking', fontsize=18)
 plt.ylabel('motor torque', fontsize=16)
@@ -175,16 +178,23 @@ plt.show()
 del time_list[0]
 
 fig = plt.figure()
-plt.plot(time_list, RPM_list, 'ro')
+plt.plot(time_list, RPM_list)
 fig.suptitle('motor RPM', fontsize=20)
 plt.xlabel('Time since hooking', fontsize=18)
 plt.ylabel('motor RPM', fontsize=16)
 plt.show()
 
+fig = plt.figure()
+plt.plot(time_list, rope_speed_list)
+fig.suptitle('Rope speed', fontsize=20)
+plt.xlabel('Time since hooking', fontsize=18)
+plt.ylabel('Rope speed', fontsize=16)
+plt.show()
+
 del time_list[0]
 
 fig = plt.figure()
-plt.plot(time_list, omega_list, 'ro')
+plt.plot(time_list, omega_list)
 fig.suptitle('motor angular speed', fontsize=20)
 plt.xlabel('Time since hooking', fontsize=18)
 plt.ylabel('motor angular speed', fontsize=16)
@@ -194,18 +204,27 @@ plt.show()
 
 
 fig = plt.figure()
-plt.plot(time_list, alpha_list, 'ro')
+plt.plot(time_list, alpha_list)
 fig.suptitle('motor angular acceleration', fontsize=20)
 plt.xlabel('Time since hooking', fontsize=18)
 plt.ylabel('motor angular acceleration', fontsize=16)
 plt.show()
 
 fig = plt.figure()
-plt.plot(time_list, acceleration_torque_list, 'ro')
+plt.plot(time_list, acceleration_torque_list)
 fig.suptitle('motor acceleration torque', fontsize=20)
 plt.xlabel('Time since hooking', fontsize=18)
 plt.ylabel('motor acceleration torque', fontsize=16)
 plt.show()
+
+del RPM_list[0]
+fig = plt.figure()
+plt.plot(acceleration_torque_list, RPM_list)
+fig.suptitle('Torque /RPM plot', fontsize=20)
+plt.xlabel('Acceleration torque', fontsize=18)
+plt.ylabel('RPM', fontsize=16)
+plt.show()
+
 
 def old_fw_x_to_motor_r(fw_x):
     #Lets define the distance between the two arms to 2 meter
