@@ -127,7 +127,7 @@ braking_force_two_motors = fw_momentum/braking_time
 
 braking_force_one_motor = braking_force_two_motors/2
 
-fw_position = 0.0
+fw_position = -17
 
 #Now lets step through the process with small time steps
 
@@ -136,24 +136,36 @@ position_list = []
 speed_list = []
 torque_list = []
 time_list = []
-time = 0.0
+time = -1
 pre_compute_spiral()
+torque = 0
 while(fw_speed > 0):
+
     fw_position += fw_speed*delta_t
-    #print("Fw position", fw_position)
     position_list.append(fw_position)
-    motor_radius = fw_x_to_motor_r(fw_position)
-    #motor_radius = motor_diameter/2
-    torque = braking_force_one_motor*motor_radius
+    if time >= 0:
+        motor_radius = fw_x_to_motor_r(fw_position)
+        #motor_radius = motor_diameter/2
+        torque = braking_force_one_motor*motor_radius
+        delta_momentum = (braking_force_one_motor*delta_t)*2
+        fw_momentum -= delta_momentum
+        fw_speed = fw_momentum/fw_mass
+    else:
+        alpha_list.append(0)
+        omega_list.append(0)
+        acceleration_torque_list.append(0)
+        RPM_list.append(0)
+
+        rope_speed_list.append(0)
     time += delta_t
     time_list.append(time)
     #As each motor is expected to change the momentum by this amount we multiply by two
-    delta_momentum = (braking_force_one_motor*delta_t)*2
 
-    fw_momentum -= delta_momentum
-    fw_speed = fw_momentum/fw_mass
     speed_list.append(fw_speed)
     torque_list.append(torque)
+
+
+
 plt.style.use('fivethirtyeight')
 fig = plt.figure()
 plt.plot(time_list, speed_list)
