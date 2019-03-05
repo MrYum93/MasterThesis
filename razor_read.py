@@ -2,21 +2,27 @@
 # -*- coding: utf-8 -*-
 
 import sys
-from serial import *
+# from serial import *
+import serial
 import time
 from struct import *
+import numpy as np
+import matplotlib.pyplot as plt
+# from matplotlib.animation import FuncAnimation
+import matplotlib.animation as animation
+from matplotlib import style
+from pylab import ion
+from plot_rpy import PlotRPY
 
-import io
-
-#Setting up serial communication
-try:
-    ser = Serial('/dev/ttyUSB0', 57600)  # open serial port
-except SerialException:
-    ser = Serial('/dev/ttyUSB1', 57600)
-time.sleep(3) #This is to make sure that the razor is up and running, there is a faster way using the guide https://github.com/Razor-AHRS/razor-9dof-ahrs/wiki/Tutorial#writing-your-own-code-to-read-from-the-tracker
+ser = serial.Serial('/dev/ttyUSB0', 57600)
+# try:
+#     ser = serial.Serial('/dev/ttyUSB0', 57600)  # open serial port
+# except serial.SerialException:
+#     ser = serial.Serial('/dev/ttyUSB1', 57600)
+time.sleep(3)   # This is to make sure that the razor is up and running, there is a faster way using the guide
+        # https://github.com/Razor-AHRS/razor-9dof-ahrs/wiki/Tutorial#writing-your-own-code-to-read-from-the-tracker
 print(ser.name)         # check which port was really used
 ser.timeout = 1
-
 
 ser.write("#ob") # Turn on binary output
 ser.write("#o1") # Turn on continuous streaming output
@@ -26,108 +32,129 @@ ser.write("#s00") #Request synch token
 
 #print("Is the serial port open", ser.is_open)
 # it is buffering. required to get the data out *now*
-#yaw = 0
-#pitch = 0
-#roll = 0
+yaw = 0
+pitch = 0
+roll = 0
 #Der er 3 læsninger per YPR, måske bare joine dem i en string og så unpack?
 
-#def bits_to_float(b):
-#    #s = pack('<1', b)
-#    return unpack('>f', b)[0]
-data_array = []
-counter = 0
-line = ser.readline()
-while(True):
-    inc = ser.read()
-    data_array.append(inc)
-    if counter == 40:
-        print(data_array)
-        data_array = []
-        counter = 0
-        #ser.write("#s00")
-    counter += 1
+# while True: #The processor little indean to big indean java reading syntax
+#     float = ser.read() + (ser.read() <<8 ) + (ser.read() <<16) +( ser.read() <<24)
+#     print(float)
 
-#Lets try to read the data until the same token is found again
 reading_counter = 0
+array_cnt = 0
+time = 0
+yaw_l = []  # np.array(np.zeros(20))
+pitch_l = np.array(np.zeros(20))
+roll_l = np.array(np.zeros(20))
+time_l = []  # np.array(np.zeros(20))
+
+style.use('fivethirtyeight')
+# fig, ax = plt.subplots()
+fig = plt.figure()
+ax = fig.add_subplot(1, 1, 1)
 
 
-ser.readline() #This should empty the synch and abit after in the buffer
+def animate(i):
+    xs = time_l
+    ys = yaw_l
+    # xs.append(time)
+    # ys.append(yaw)
+    print("xs", xs)
+    print("ys", ys)
+    print("time", time_l)
+    print("yaw", yaw_l)
+    print('')
+    ax.clear()
+    ax.plot(xs, ys)
+    return ax
 
+def updatePlot(time_l_, yaw_l_):
+    # clear the current plot
+    plt.clf()
+    # print("time", time_l_)
+    # print("yaw", yaw_l_)
+
+    # Plot bob position as dot and string as line
+    plt.plot(time_l_, yaw_l_, 'ro')
+
+    # Update the plot
+    plt.draw()
+    # plt.show()
+
+
+plot = PlotRPY(time, yaw)
+
+ser.readline()  # This solves the sync problems...
 
 while True:
 
-
-    byte0 = ser.read()
-    byte1 = ser.read()
-    byte2 = ser.read()
-    byte3 = ser.read()
-
-    data0 = unpack("<b", byte0)
-    data1 = unpack("<b", byte1)
-    data2 = unpack("<b", byte2)
-    data3 = unpack("<b", byte3)
-
-    #unpacked = unpack("<B", data)
-    reading = data0 + data1 + data2 + data3
     if reading_counter == 0:
-        print("The yaw value is", reading)
+        byte0 = ser.read()
+        byte1 = ser.read()
+        byte2 = ser.read()
+        byte3 = ser.read()
+
+        dataFloat = unpack('f', byte0 + byte1 + byte2 + byte3)
+        # print("The yaw value is", dataFloat[0])
+
+        time_l.append(time)
+        yaw_l.append(dataFloat[0])
+        # print("time", time)
+        # print("datafloat", dataFloat)
+        # print("time_l", time_l)
+        # print("yaw_l", yaw_l)
+        # updatePlot(time_l, yaw_l)
+
+        # ani = animation.FuncAnimation(fig, animate, interval=10, blit=True repeat=False)
+        print("time vs yaw", time, dataFloat[0])
+        # plt.plot(time, dataFloat[0], 'ro')
+        # plt.show()
+
+        # plt.clf()
+        plot.update_plot(time, dataFloat[0])
+
+        pass
     if reading_counter == 1:
-        print("The pitch value is", reading)
+        byte0 = ser.read()
+        byte1 = ser.read()
+        byte2 = ser.read()
+        byte3 = ser.read()
+
+        dataFloat = unpack('f', byte0 + byte1 + byte2 + byte3)
+
+        print("The pitch value is", dataFloat)
         dummy = 0
     if reading_counter == 2:
-        print("The roll value is", reading, '\n')
+        byte0 = ser.read()
+        byte1 = ser.read()
+        byte2 = ser.read()
+        byte3 = ser.read()
+
+        dataFloat = unpack('f', byte0 + byte1 + byte2 + byte3)
+
+        print("The roll value is", dataFloat)
         dummy = 1
     reading_counter += 1
     if reading_counter > 2:
         reading_counter = 0
 
+    time += 1
+    print('')
 
 
-
-
-ser.close()             # close port
-
-
-
-
-def find_synch():
-
-    #To find the sync
-    ser.readline()
-    #sio = io.TextIOWrapper(io.BufferedRWPair(ser, ser))
-    #test = sio.readline()
-    #print(test)
-    synch_token = "#SYNCH00\r\n"
-    while(True):
-        chunk = ser.read(1)
-        print("chunk", chunk)
-        hr_chunk = unpack("<b",chunk)
-        print(hr_chunk)
-
-
+#Lets try to read the data until the same token is found again
 data_array = []
-counter = 0
+while(True):
+    inc = ser.read()
+    data_array.append(inc)
+    # if data_array[0] == inc
+
+# ser.close()             # close port
 
 
 
 
-
-#while True:
-#    ser.read()
-#
-#    print(bits_to_float(ser.read()))
-
-
-
-
-#Method to read from the
-
-
-
-#while True: #The processor little indean to big indean java reading syntax
-#    float = ser.read() + (ser.read() <<8 ) + (ser.read() <<16) +( ser.read() <<24)
-#    print(float)
-#reading_counter = 0
 
 
 #Bus 001 Device 006: ID 0403:6001 Future Technology Devices International, Ltd FT232 USB-Serial (UART) IC
