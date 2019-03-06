@@ -40,9 +40,11 @@ YYYY-MM-DD
 # imports
 import numpy as np
 from pylab import ion
-from matplotlib.pyplot import figure, clf, axis, plot, draw, show, pause
+from matplotlib.pyplot import figure, clf, axis, plot, draw, show, pause, subplots
+import sys
 
 # defines
+EPS = sys.float_info.epsilon
 
 # msg ids
 
@@ -52,14 +54,22 @@ from matplotlib.pyplot import figure, clf, axis, plot, draw, show, pause
 
 class PlotRPY(object):
     def __init__(self, time, yaw):
-        self.fig = figure(num=None, figsize=(6,6), dpi=80, facecolor='w', edgecolor='k')
+        self.fig, self.ax = subplots()#figure(num=None, figsize=(6,6), dpi=80, facecolor='w', edgecolor='k')
+        self.yaw_line = self.ax.plot(0)
+        self.pitch_line = self.ax.plot(0)
+        self.roll_line = self.ax.plot(0)
         ion()
 
-    def update_plot(self, time, yaw):
+    def update_plot(self, time_, yaw, pitch, roll):
         clf()
-        yaw = int(yaw)
-        axis([0, time, -180, 180])
-        plot(time, yaw, 'o')
+        # yaw = int(yaw)
+        axis([time_[0], time_[-1], -180, 180])
+        # self.yaw_line.set_ydata(yaw)
+        # self.pitch_line.set_ydata(pitch)
+        # self.roll_line.set_ydata(roll)
+        plot(time_, yaw, '-')
+        plot(time_, pitch, '-')
+        plot(time_, roll, '-')
 
-        draw()
+        # draw()
         pause(0.001)

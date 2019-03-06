@@ -43,104 +43,120 @@ roll = 0
 
 reading_counter = 0
 array_cnt = 0
-time = 0
+timer = 0
 yaw_l = []  # np.array(np.zeros(20))
-pitch_l = np.array(np.zeros(20))
-roll_l = np.array(np.zeros(20))
-time_l = []  # np.array(np.zeros(20))
+pitch_l = []  # np.array(np.zeros(20))
+roll_l = []  # np.array(np.zeros(20))
+timer_l = []  # np.array(np.zeros(20))
 
 style.use('fivethirtyeight')
 # fig, ax = plt.subplots()
-fig = plt.figure()
-ax = fig.add_subplot(1, 1, 1)
+# fig = plt.figure()
+# ax = fig.add_subplot(1, 1, 1)
 
 
-def animate(i):
-    xs = time_l
-    ys = yaw_l
-    # xs.append(time)
-    # ys.append(yaw)
-    print("xs", xs)
-    print("ys", ys)
-    print("time", time_l)
-    print("yaw", yaw_l)
-    print('')
-    ax.clear()
-    ax.plot(xs, ys)
-    return ax
+# def animate(i):
+#     xs = timer_l
+#     ys = yaw_l
+#     # xs.append(timer)
+#     # ys.append(yaw)
+#     print("xs", xs)
+#     print("ys", ys)
+#     print("timer", timer_l)
+#     print("yaw", yaw_l)
+#     print('')
+#     ax.clear()
+#     ax.plot(xs, ys)
+#     return ax
 
-def updatePlot(time_l_, yaw_l_):
-    # clear the current plot
-    plt.clf()
-    # print("time", time_l_)
-    # print("yaw", yaw_l_)
-
-    # Plot bob position as dot and string as line
-    plt.plot(time_l_, yaw_l_, 'ro')
-
-    # Update the plot
-    plt.draw()
-    # plt.show()
-
-
-plot = PlotRPY(time, yaw)
+plot = PlotRPY(timer, yaw)
 
 ser.readline()  # This solves the sync problems...
 
 while True:
+    yaw0 = ser.read()
+    yaw1 = ser.read()
+    yaw2 = ser.read()
+    yaw3 = ser.read()
+    yaw_float = unpack('f', yaw0 + yaw1 + yaw2 + yaw3)
+    pitch0 = ser.read()
+    pitch1 = ser.read()
+    pitch2 = ser.read()
+    pitch3 = ser.read()
+    pitch_float = unpack('f', pitch0 + pitch1 + pitch2 + pitch3)
+    roll0 = ser.read()
+    roll1 = ser.read()
+    roll2 = ser.read()
+    roll3 = ser.read()
+    roll_float = unpack('f', roll0 + roll1 + roll2 + roll3)
 
-    if reading_counter == 0:
-        byte0 = ser.read()
-        byte1 = ser.read()
-        byte2 = ser.read()
-        byte3 = ser.read()
+    timer_l.append(timer)
+    yaw_l.append(yaw_float[0])
+    pitch_l.append(pitch_float[0])
+    roll_l.append(roll_float[0])
 
-        dataFloat = unpack('f', byte0 + byte1 + byte2 + byte3)
-        # print("The yaw value is", dataFloat[0])
+    print("timer vs yaw", timer, yaw_float[0])
+    print("timer vs pitch", timer, pitch_float[0])
+    print("timer vs roll", timer, roll_float[0])
 
-        time_l.append(time)
-        yaw_l.append(dataFloat[0])
-        # print("time", time)
-        # print("datafloat", dataFloat)
-        # print("time_l", time_l)
-        # print("yaw_l", yaw_l)
-        # updatePlot(time_l, yaw_l)
+    # plot.update_plot(timer, yaw_float[0])
+    plot.update_plot(timer_l[-100:], yaw_l[-100:], pitch_l[-100:], roll_l[-100:])
+    # print("should be 20 long", timer_l[-20:])
 
-        # ani = animation.FuncAnimation(fig, animate, interval=10, blit=True repeat=False)
-        print("time vs yaw", time, dataFloat[0])
-        # plt.plot(time, dataFloat[0], 'ro')
-        # plt.show()
 
-        # plt.clf()
-        plot.update_plot(time, dataFloat[0])
+    # if reading_counter == 0:
+    #     byte0 = ser.read()
+    #     byte1 = ser.read()
+    #     byte2 = ser.read()
+    #     byte3 = ser.read()
+    #
+    #     dataFloat = unpack('f', byte0 + byte1 + byte2 + byte3)
+    #     # print("The yaw value is", dataFloat[0])
+    #
+    #     timer_l.append(timer)
+    #     yaw_l.append(dataFloat[0])
+    #     # print("timer", timer)
+    #     # print("datafloat", dataFloat)
+    #     # print("timer_l", timer_l)
+    #     # print("yaw_l", yaw_l)
+    #     # updatePlot(timer_l, yaw_l)
+    #
+    #     # ani = animation.FuncAnimation(fig, animate, interval=10, blit=True repeat=False)
+    #     print("timer vs yaw", timer, dataFloat[0])
+    #     # plt.plot(timer, dataFloat[0], 'ro')
+    #     # plt.show()
+    #
+    #     # plt.clf()
+    #     plot.update_plot(timer, dataFloat[0])
+    #
+    #     pass
+    # if reading_counter == 1:
+    #     byte0 = ser.read()
+    #     byte1 = ser.read()
+    #     byte2 = ser.read()
+    #     byte3 = ser.read()
+    #
+    #     dataFloat = unpack('f', byte0 + byte1 + byte2 + byte3)
+    #
+    #     print("The pitch value is", dataFloat)
+    #     dummy = 0
+    # if reading_counter == 2:
+    #     byte0 = ser.read()
+    #     byte1 = ser.read()
+    #     byte2 = ser.read()
+    #     byte3 = ser.read()
+    #
+    #     dataFloat = unpack('f', byte0 + byte1 + byte2 + byte3)
+    #
+    #     print("The roll value is", dataFloat)
+    #     dummy = 1
+    # reading_counter += 1
+    # if reading_counter > 2:
+    #     reading_counter = 0
 
-        pass
-    if reading_counter == 1:
-        byte0 = ser.read()
-        byte1 = ser.read()
-        byte2 = ser.read()
-        byte3 = ser.read()
-
-        dataFloat = unpack('f', byte0 + byte1 + byte2 + byte3)
-
-        print("The pitch value is", dataFloat)
-        dummy = 0
-    if reading_counter == 2:
-        byte0 = ser.read()
-        byte1 = ser.read()
-        byte2 = ser.read()
-        byte3 = ser.read()
-
-        dataFloat = unpack('f', byte0 + byte1 + byte2 + byte3)
-
-        print("The roll value is", dataFloat)
-        dummy = 1
-    reading_counter += 1
-    if reading_counter > 2:
-        reading_counter = 0
-
-    time += 1
+    timer += 1
     print('')
+    time.sleep(0.001)
 
 
 #Lets try to read the data until the same token is found again
