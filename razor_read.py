@@ -2,21 +2,27 @@
 # -*- coding: utf-8 -*-
 
 import sys
-from serial import *
+# from serial import *
+import serial
 import time
 from struct import *
+import numpy as np
+import matplotlib.pyplot as plt
+# from matplotlib.animation import FuncAnimation
+import matplotlib.animation as animation
+from matplotlib import style
+from pylab import ion
+from plot_rpy import PlotRPY
 
-import io
-
-#Setting up serial communication
-try:
-    ser = Serial('/dev/ttyUSB0', 57600)  # open serial port
-except SerialException:
-    ser = Serial('/dev/ttyUSB1', 57600)
-time.sleep(3) #This is to make sure that the razor is up and running, there is a faster way using the guide https://github.com/Razor-AHRS/razor-9dof-ahrs/wiki/Tutorial#writing-your-own-code-to-read-from-the-tracker
+ser = serial.Serial('/dev/ttyUSB0', 57600)
+# try:
+#     ser = serial.Serial('/dev/ttyUSB0', 57600)  # open serial port
+# except serial.SerialException:
+#     ser = serial.Serial('/dev/ttyUSB1', 57600)
+time.sleep(3)   # This is to make sure that the razor is up and running, there is a faster way using the guide
+        # https://github.com/Razor-AHRS/razor-9dof-ahrs/wiki/Tutorial#writing-your-own-code-to-read-from-the-tracker
 print(ser.name)         # check which port was really used
 ser.timeout = 1
-
 
 ser.write("#ob") # Turn on binary output
 ser.write("#o1") # Turn on continuous streaming output
@@ -26,108 +32,145 @@ ser.write("#s00") #Request synch token
 
 #print("Is the serial port open", ser.is_open)
 # it is buffering. required to get the data out *now*
-#yaw = 0
-#pitch = 0
-#roll = 0
+yaw = 0
+pitch = 0
+roll = 0
 #Der er 3 læsninger per YPR, måske bare joine dem i en string og så unpack?
 
-#def bits_to_float(b):
-#    #s = pack('<1', b)
-#    return unpack('>f', b)[0]
+# while True: #The processor little indean to big indean java reading syntax
+#     float = ser.read() + (ser.read() <<8 ) + (ser.read() <<16) +( ser.read() <<24)
+#     print(float)
+
+reading_counter = 0
+array_cnt = 0
+timer = 0
+yaw_l = []  # np.array(np.zeros(20))
+pitch_l = []  # np.array(np.zeros(20))
+roll_l = []  # np.array(np.zeros(20))
+timer_l = []  # np.array(np.zeros(20))
+
+style.use('fivethirtyeight')
+# fig, ax = plt.subplots()
+# fig = plt.figure()
+# ax = fig.add_subplot(1, 1, 1)
+
+
+# def animate(i):
+#     xs = timer_l
+#     ys = yaw_l
+#     # xs.append(timer)
+#     # ys.append(yaw)
+#     print("xs", xs)
+#     print("ys", ys)
+#     print("timer", timer_l)
+#     print("yaw", yaw_l)
+#     print('')
+#     ax.clear()
+#     ax.plot(xs, ys)
+#     return ax
+
+plot = PlotRPY(timer, yaw)
+
+ser.readline()  # This solves the sync problems...
+
+while True:
+    yaw0 = ser.read()
+    yaw1 = ser.read()
+    yaw2 = ser.read()
+    yaw3 = ser.read()
+    yaw_float = unpack('f', yaw0 + yaw1 + yaw2 + yaw3)
+    pitch0 = ser.read()
+    pitch1 = ser.read()
+    pitch2 = ser.read()
+    pitch3 = ser.read()
+    pitch_float = unpack('f', pitch0 + pitch1 + pitch2 + pitch3)
+    roll0 = ser.read()
+    roll1 = ser.read()
+    roll2 = ser.read()
+    roll3 = ser.read()
+    roll_float = unpack('f', roll0 + roll1 + roll2 + roll3)
+
+    timer_l.append(timer)
+    yaw_l.append(yaw_float[0])
+    pitch_l.append(pitch_float[0])
+    roll_l.append(roll_float[0])
+
+    print("timer vs yaw", timer, yaw_float[0])
+    print("timer vs pitch", timer, pitch_float[0])
+    print("timer vs roll", timer, roll_float[0])
+
+    # plot.update_plot(timer, yaw_float[0])
+    plot.update_plot(timer_l[-100:], yaw_l[-100:], pitch_l[-100:], roll_l[-100:])
+    # print("should be 20 long", timer_l[-20:])
+
+
+    # if reading_counter == 0:
+    #     byte0 = ser.read()
+    #     byte1 = ser.read()
+    #     byte2 = ser.read()
+    #     byte3 = ser.read()
+    #
+    #     dataFloat = unpack('f', byte0 + byte1 + byte2 + byte3)
+    #     # print("The yaw value is", dataFloat[0])
+    #
+    #     timer_l.append(timer)
+    #     yaw_l.append(dataFloat[0])
+    #     # print("timer", timer)
+    #     # print("datafloat", dataFloat)
+    #     # print("timer_l", timer_l)
+    #     # print("yaw_l", yaw_l)
+    #     # updatePlot(timer_l, yaw_l)
+    #
+    #     # ani = animation.FuncAnimation(fig, animate, interval=10, blit=True repeat=False)
+    #     print("timer vs yaw", timer, dataFloat[0])
+    #     # plt.plot(timer, dataFloat[0], 'ro')
+    #     # plt.show()
+    #
+    #     # plt.clf()
+    #     plot.update_plot(timer, dataFloat[0])
+    #
+    #     pass
+    # if reading_counter == 1:
+    #     byte0 = ser.read()
+    #     byte1 = ser.read()
+    #     byte2 = ser.read()
+    #     byte3 = ser.read()
+    #
+    #     dataFloat = unpack('f', byte0 + byte1 + byte2 + byte3)
+    #
+    #     print("The pitch value is", dataFloat)
+    #     dummy = 0
+    # if reading_counter == 2:
+    #     byte0 = ser.read()
+    #     byte1 = ser.read()
+    #     byte2 = ser.read()
+    #     byte3 = ser.read()
+    #
+    #     dataFloat = unpack('f', byte0 + byte1 + byte2 + byte3)
+    #
+    #     print("The roll value is", dataFloat)
+    #     dummy = 1
+    # reading_counter += 1
+    # if reading_counter > 2:
+    #     reading_counter = 0
+
+    timer += 1
+    print('')
+    time.sleep(0.001)
+
+
+#Lets try to read the data until the same token is found again
 data_array = []
-counter = 0
-line = ser.readline()
 while(True):
     inc = ser.read()
     data_array.append(inc)
-    if counter == 40:
-        print(data_array)
-        data_array = []
-        counter = 0
-        #ser.write("#s00")
-    counter += 1
+    # if data_array[0] == inc
 
-#Lets try to read the data until the same token is found again
-reading_counter = 0
-
-
-ser.readline() #This should empty the synch and abit after in the buffer
-
-
-while True:
-
-
-    byte0 = ser.read()
-    byte1 = ser.read()
-    byte2 = ser.read()
-    byte3 = ser.read()
-
-    data0 = unpack("<b", byte0)
-    data1 = unpack("<b", byte1)
-    data2 = unpack("<b", byte2)
-    data3 = unpack("<b", byte3)
-
-    #unpacked = unpack("<B", data)
-    reading = data0 + data1 + data2 + data3
-    if reading_counter == 0:
-        print("The yaw value is", reading)
-    if reading_counter == 1:
-        print("The pitch value is", reading)
-        dummy = 0
-    if reading_counter == 2:
-        print("The roll value is", reading, '\n')
-        dummy = 1
-    reading_counter += 1
-    if reading_counter > 2:
-        reading_counter = 0
+# ser.close()             # close port
 
 
 
 
-
-ser.close()             # close port
-
-
-
-
-def find_synch():
-
-    #To find the sync
-    ser.readline()
-    #sio = io.TextIOWrapper(io.BufferedRWPair(ser, ser))
-    #test = sio.readline()
-    #print(test)
-    synch_token = "#SYNCH00\r\n"
-    while(True):
-        chunk = ser.read(1)
-        print("chunk", chunk)
-        hr_chunk = unpack("<b",chunk)
-        print(hr_chunk)
-
-
-data_array = []
-counter = 0
-
-
-
-
-
-#while True:
-#    ser.read()
-#
-#    print(bits_to_float(ser.read()))
-
-
-
-
-#Method to read from the
-
-
-
-#while True: #The processor little indean to big indean java reading syntax
-#    float = ser.read() + (ser.read() <<8 ) + (ser.read() <<16) +( ser.read() <<24)
-#    print(float)
-#reading_counter = 0
 
 
 #Bus 001 Device 006: ID 0403:6001 Future Technology Devices International, Ltd FT232 USB-Serial (UART) IC
