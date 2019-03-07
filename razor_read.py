@@ -73,6 +73,7 @@ style.use('fivethirtyeight')
 
 ser.readline()  # This solves the sync problems...
 filesaver = log_yaw()
+plot_cnt = 0
 while True:
     yaw0 = ser.read()
     yaw1 = ser.read()
@@ -99,9 +100,11 @@ while True:
     print("timer vs pitch", timer, pitch_float[0])
     print("timer vs roll", timer, roll_float[0])
 
-    # plot.update_plot(timer, yaw_float[0])
-    #plot.update_plot(timer_l[-100:], yaw_l[-100:], pitch_l[-100:], roll_l[-100:])
-    # print("should be 20 long", timer_l[-20:])
+    if plot_cnt >= 5:
+        # plot.update_plot(timer, yaw_float[0])
+        plot.update_plot(timer_l[-100:], yaw_l[-100:], pitch_l[-100:], roll_l[-100:])
+        # print("should be 20 long", timer_l[-20:])
+        plot_cnt = 0
 
 
     # if reading_counter == 0:
@@ -154,9 +157,10 @@ while True:
     # if reading_counter > 2:
     #     reading_counter = 0
 
+    plot_cnt += 1
     timer += 1
     print('')
-    time.sleep(0.001)
+    # time.sleep(0.1)
 
 
 #Lets try to read the data until the same token is found again

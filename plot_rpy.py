@@ -40,8 +40,12 @@ YYYY-MM-DD
 # imports
 import numpy as np
 from pylab import ion
+# import matplotlib
+# matplotlib.use('Qt4Agg')
 from matplotlib.pyplot import figure, clf, axis, plot, draw, show, pause, subplots
+import matplotlib.pyplot as plt
 import sys
+import time
 
 # defines
 EPS = sys.float_info.epsilon
@@ -54,22 +58,21 @@ EPS = sys.float_info.epsilon
 
 class PlotRPY(object):
     def __init__(self, time, yaw):
-        self.fig, self.ax = subplots()#figure(num=None, figsize=(6,6), dpi=80, facecolor='w', edgecolor='k')
-        self.yaw_line = self.ax.plot(0)
-        self.pitch_line = self.ax.plot(0)
-        self.roll_line = self.ax.plot(0)
-        ion()
+        # self.fig = figure(num=None, figsize=(6,6), dpi=80, facecolor='w', edgecolor='k')
+        self.fig, self.ax = plt.subplots()
+        # ion()
+        # plt.show(block=False)
 
     def update_plot(self, time_, yaw, pitch, roll):
-        clf()
+        # clf()
         # yaw = int(yaw)
         axis([time_[0], time_[-1], -180, 180])
-        # self.yaw_line.set_ydata(yaw)
-        # self.pitch_line.set_ydata(pitch)
-        # self.roll_line.set_ydata(roll)
+
+        # self.fig.canvas.draw()
+        self.fig.canvas.flush_events()
+
         plot(time_, yaw, '-')
         plot(time_, pitch, '-')
         plot(time_, roll, '-')
 
-        # draw()
-        pause(0.001)
+        pause(0.00001)
