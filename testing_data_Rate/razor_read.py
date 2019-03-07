@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 from matplotlib import style
 from pylab import ion
-from plot_rpy import PlotRPY
+#from plot_rpy import PlotRPY
 from save_file import *
 ser = serial.Serial('/dev/ttyUSB0', 57600)
 # try:
@@ -90,14 +90,14 @@ while True:
     roll3 = ser.read()
     roll_float = unpack('f', roll0 + roll1 + roll2 + roll3)
 
-    timer_l.append(timer)
-    yaw_l.append(yaw_float[0])
-    pitch_l.append(pitch_float[0])
-    roll_l.append(roll_float[0])
+    #timer_l.append(timer)
+    #yaw_l.append(yaw_float[0])
+    #pitch_l.append(pitch_float[0])
+    #roll_l.append(roll_float[0])
     filesaver.append_float(yaw_float[0])
-    print("timer vs yaw", timer, yaw_float[0])
-    print("timer vs pitch", timer, pitch_float[0])
-    print("timer vs roll", timer, roll_float[0])
+    #print("timer vs yaw", timer, yaw_float[0])
+    #print("timer vs pitch", timer, pitch_float[0])
+    #print("timer vs roll", timer, roll_float[0])
 
     # plot.update_plot(timer, yaw_float[0])
     #plot.update_plot(timer_l[-100:], yaw_l[-100:], pitch_l[-100:], roll_l[-100:])
@@ -154,9 +154,9 @@ while True:
     # if reading_counter > 2:
     #     reading_counter = 0
 
-    timer += 1
-    print('')
-    time.sleep(0.001)
+    #timer += 1
+    #print('')
+    #time.sleep(0.001)
 
 
 #Lets try to read the data until the same token is found again
