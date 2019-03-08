@@ -24,6 +24,8 @@ TO_DEG = 180 / math.pi
 # We're using SI units
 class ar_model(object):
     def __init__(self):
+        self.plane_verbose = True
+        self.cr_verbose = True
         # lists
         self.plane_pos_l = []
         self.plane_vel_l = []
@@ -42,14 +44,14 @@ class ar_model(object):
         self.spring_init_vel = 0
 
         self.time = 0.0
-        self.delta_t = 0.01
+        self.delta_t = 0.005
 
         self.rope_len = 1
         self.rope_k = 2
 
         self.plane_mass = 1.2
-        self.plane_pos = np.array([self.rope_len+0.05, 0.05])
-        self.plane_vel = np.array([0, -17])
+        self.plane_pos = np.array([0, -1]) #The plane starts one meter before the docking station before it is hooked
+        self.plane_vel = np.array([0, 17])
         self.plane_acc = np.array([0, 0])
         self.plane_displacement = 0
         self.plane_k_e = 1/2 * self.plane_mass * self.plane_vel**2
@@ -127,7 +129,8 @@ class ar_model(object):
     # tmp_r = np.around(math.acos(dot_r/linalg_r), decimals=13)
     # self.spring_r_ang_rope = tmp_r
 
-    def pos_to_vel_acc(self, time_list, pos_list, title=""):
+    def plot_plane(self):
+        '''
         x = time_list
         y = pos_list
         # y = [item[1] for item in pos_list]
@@ -145,22 +148,24 @@ class ar_model(object):
         y = y[:-2]
         dy = dy[:-2]
         dyy = dyy[:-2]
-
+        '''
+        print("Post_list[1]", self.plane_pos_l[1])
         plt.subplot(3, 1, 1)
-        plt.title(title)
-        plt.plot(x, y, 'r')
-        plt.xlabel('Time since hooking', fontsize=18)
-        plt.ylabel('Pos', fontsize=16)
+        plt.title("Plane movement along the y-axis")
+        plt.plot(self.time_l, [item[1] for item in self.plane_pos_l], 'r')
+        plt.xlabel('Time', fontsize=18)
+        plt.ylabel('Plane y pos', fontsize=16)
 
         plt.subplot(3, 1, 2)
-        plt.plot(x, dy, 'r')
-        plt.xlabel('Time since hooking', fontsize=18)
-        plt.ylabel('Vel', fontsize=16)
+        plt.plot(self.time_l, [item[1] for item in self.plane_vel_l], 'r')
+        plt.xlabel('Time', fontsize=18)
+        plt.ylabel('Plane y velocity', fontsize=16)
 
         plt.subplot(3, 1, 3)
-        plt.plot(x, dyy, 'r')
-        plt.xlabel('Time since hooking', fontsize=18)
-        plt.ylabel('Acc', fontsize=16)
+  
+        plt.plot(self.time_l, [item[1] for item in self.plane_acc_l], 'r')
+        plt.xlabel('Time', fontsize=18)
+        plt.ylabel('Plane y acceleration', fontsize=16)
 
         plt.show()
 
@@ -207,10 +212,16 @@ class ar_model(object):
         :param end_anchor: Point where the rope is anchored at the docking station
         :return:
         '''
+
+        #Two different forces for the rope
         stretch = hook_point - anchor_point
-        lhat = stretch / (stretch**2).sum()**0.5
+        if self.cr_verbose:
+            print("Rope stretch", stretch)
+        lhat = stretch / (stretch**2).sum()**0.5 #Normalized direction vector
         stretch = np.linalg.norm(stretch) - naturel_length
         force = -spring_k*stretch*lhat
+        if self.cr_verbose:
+            print("Rope force", force)
         return force
 
     def calc_end_point_from_angle(self, end_point, center_of_circle, radius, plane_pos):
@@ -287,14 +298,70 @@ class ar_model(object):
 
         damping = 0.3
 
-        '''
-        Description: Simplified version, where the plane hooks at the middle of the rope,
-        Which is fastened at equal fixed distance to the right and left
-        '''
+       
         cnt = 0
+        plane_hooked = False
+        f_spring_system = np.array([0, 0])
+        while self.time < 3:
+            '''
+            Description: Simplified version, where the plane hooks at the middle of the rope,
+            Which is fastened at equal fixed distance to the right and left
+            '''
+            
+            #We have two ropes each going from their left anchor to the hooking point
+            #These lines dont need to be in the while loop
+            hook_point = np.array([0, 0]) #As the plane are one meter below the hook point (seen in the y direction)
+            left_rope_anchor = np.array([-1, 0]) 
+            right_rope_anchor = np.array([1, 0]) 
+            
+            if not plane_hooked:
+                f_rope_l = model.connect_rope(self.rope_len, self.rope_k, hook_point, left_rope_anchor)
+                f_rope_r = model.connect_rope(self.rope_len, self.rope_k, hook_point, right_rope_anchor)
+                f_spring_system = f_rope_l + f_rope_r
+                if self.cr_verbose:
+                    print("Force from the two ropes", f_spring_system)
+            if plane_hooked:
+                f_rope_l = model.connect_rope(self.rope_len, self.rope_k, self.plane_pos, left_rope_anchor)
+                f_rope_r = model.connect_rope(self.rope_len, self.rope_k, self.plane_pos, right_rope_anchor)
+                f_spring_system = f_rope_l + f_rope_r
+                if self.cr_verbose:
+                    print("Force from the two ropes", f_spring_system)
+            #f_spring_system = f_rope_l + f_rope_r
+            #The dynamics of the plane
+            self.plane_acc = f_spring_system / self.plane_mass
+            if self.plane_verbose:
+                print("Plane acc", self.plane_acc)
+            self.plane_vel = self.plane_vel + self.plane_acc * self.delta_t
+            
+            self.plane_pos = self.plane_pos + self.plane_vel * self.delta_t
+            
+            #Check if the plane is hooked to the rope yet
+            if not plane_hooked and self.plane_pos[1] > 0:
+                plane_hooked = True
+            
+            if self.plane_verbose:
+                print("plane pos", self.plane_pos)
+                print("Is plane hooked?", plane_hooked)            
+            
+            #Appending to lists with intresting parameters
+            self.plane_pos_l.append(self.plane_pos)
+            self.plane_vel_l.append(self.plane_vel)
+            self.plane_acc_l.append(self.plane_acc)
+            self.total_force_l.append(f_spring_system)
+          #  self.all_purpose_l.append(np.linalg.norm(f_rope_l))
+            self.end_pos_x_l.append(self.spring_l_end_point[0])
+            self.end_pos_y_l.append(self.spring_l_end_point[1])
+            self.time_l.append(self.time)
 
+            
+            
+            #Moving thrugh time with small steps
+            self.time += self.delta_t
 
+            
+        self.plot_plane()
         cnt = 0
+        '''
         while self.time < 4:
             # First we have an acceleration from prev time-step then a new vel and finally a new pos,
             # lastly increment the time
@@ -389,7 +456,8 @@ class ar_model(object):
 
         # y = [item[1] for item in pos_list]
 
-        self.pos_to_vel_acc(self.time_l, [item[1] for item in self.plane_pos_l], "Two springs y dir")
+        self.pos_to_vel_acc(self.time_l, [item[1] for item in self.plane_pos_l], "Two springs y dir") #PLotting
+        '''
         # self.pos_to_vel_acc(self.time_l, [item[0] for item in self.plane_pos_l] , "Two springs x dir")
         # self.pos_to_vel_acc(self.time_l, self.all_purpose_l, "spring stretch disregard two last plots")
         # self.total_energy(self.plane_k_e_l, self.spring_u_e_l, self.time_l) # k_u is not correct
