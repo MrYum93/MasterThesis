@@ -280,6 +280,42 @@ class ar_model(object):
 
         return end_point, theta_spring
 
+    def right_arm_kin(self, force_vector):
+        '''
+        The kinematics of the RIGHT arm is calculated and stored in this method
+        
+        *****Not 100 % sure******
+        The force along the y axis from the rope will rotate the arm fo/llowing
+        alpha = F_spring_y / M_arm
+        *****Not 100 % sure******
+        
+        *****From www.maplesoft.com/content/EngineeringFundamentals/4/mapledocument_30/Rotation MI and Torque.pdf*****
+        torque_vector = r_vector crossproduct F_vector = Inertia * acceleration_vector
+        *****From www.maplesoft.com/content/EngineeringFundamentals/4/mapledocument_30/Rotation MI and Torque.pdf*****
+        From this i think we can say that we want to solve for the acceleration_vector in order to calculate how the arm moves, thus
+        (r_vector (crossproduct) F_vector) / Inertia_arm = Acceleration_vector
+        I = M*r^2 lets use the formula for a point mass rotating a distance r from the axis, thus the mass of the arm and the distance to the COM should be used 
+        I = 0.15*0.2^2 = 0.006
+        We expect to get angular acceleration about the z axis, therefore we probably want to use 3D vectors
+
+        '''
+        force_vector_3D = np.array([force_vector[0], force_vector[1], 0])
+        r = np.array([0, 0.4, 0]) #The position vector of the point where the force is applied relative to teh axis of rotation
+        acc_vec = np.cross(r, force_vector)/0.006
+        #M = 0.200 #0.2 kg seems fair for a wooden beam as an arm
+        #This vector should then move the arm, so r have to be changed, but for starters, lets just try to print how the acceleration is when the arm is moved.
+        print("Acceleration of arm", acc_vec)
+
+    def left_arm_kin(self, rope_y_force):
+        '''
+        The kinematics of the LEFT arm is calculated and stored in this method
+        The force along the y axis from the rope will rotate the arm following
+        alpha = F_spring_y / M_arm
+        '''
+    
+
+    
+
     def main(self):
         damping = 0.001
 
@@ -304,9 +340,71 @@ class ar_model(object):
         f_spring_system = np.array([0, 0])
         while self.time < 3:
             '''
+            Description: This version introduces the two arms, but with no springs attached
+            '''
+            
+            #We have two ropes each going from their left anchor to the hooking point
+            #These lines dont need to be in the while loop
+            hook_point = np.array([0, 0]) #As the plane are one meter below the hook point (seen in the y direction)
+            left_rope_anchor = np.array([-1, 0]) 
+            right_rope_anchor = np.array([1, 0]) 
+            
+            if not plane_hooked:
+                f_rope_l = model.connect_rope(self.rope_len, self.rope_k, hook_point, left_rope_anchor)
+                f_rope_r = model.connect_rope(self.rope_len, self.rope_k, hook_point, right_rope_anchor)
+                f_spring_system = f_rope_l + f_rope_r
+                if self.cr_verbose:
+                    print("Force from the two ropes", f_spring_system)
+            if plane_hooked:
+                f_rope_l = model.connect_rope(self.rope_len, self.rope_k, self.plane_pos, left_rope_anchor)
+                f_rope_r = model.connect_rope(self.rope_len, self.rope_k, self.plane_pos, right_rope_anchor)
+                self.right_arm_kin(f_rope_r)
+                f_spring_system = f_rope_l + f_rope_r
+                if self.cr_verbose:
+                    print("Force from the two ropes", f_spring_system)
+            #f_spring_system = f_rope_l + f_rope_r
+            #The dynamics of the plane
+            self.plane_acc = f_spring_system / self.plane_mass
+            if self.plane_verbose:
+                print("Plane acc", self.plane_acc)
+            self.plane_vel = self.plane_vel + self.plane_acc * self.delta_t
+            
+            self.plane_pos = self.plane_pos + self.plane_vel * self.delta_t
+            
+            #Check if the plane is hooked to the rope yet
+            if not plane_hooked and self.plane_pos[1] > 0:
+                plane_hooked = True
+            
+            if self.plane_verbose:
+                print("plane pos", self.plane_pos)
+                print("Is plane hooked?", plane_hooked)            
+            
+            #Appending to lists with intresting parameters
+            self.plane_pos_l.append(self.plane_pos)
+            self.plane_vel_l.append(self.plane_vel)
+            self.plane_acc_l.append(self.plane_acc)
+            self.total_force_l.append(f_spring_system)
+          #  self.all_purpose_l.append(np.linalg.norm(f_rope_l))
+            self.end_pos_x_l.append(self.spring_l_end_point[0])
+            self.end_pos_y_l.append(self.spring_l_end_point[1])
+            self.time_l.append(self.time)
+
+            
+            
+            #Moving thrugh time with small steps
+            self.time += self.delta_t
+
+            
+        self.plot_plane()
+
+        '''
+         plane_hooked = False
+        f_spring_system = np.array([0, 0])
+        while self.time < 3:
+            
             Description: Simplified version, where the plane hooks at the middle of the rope,
             Which is fastened at equal fixed distance to the right and left
-            '''
+            
             
             #We have two ropes each going from their left anchor to the hooking point
             #These lines dont need to be in the while loop
@@ -360,6 +458,8 @@ class ar_model(object):
 
             
         self.plot_plane()
+        '''
+
         cnt = 0
         '''
         while self.time < 4:
