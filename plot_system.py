@@ -83,17 +83,14 @@ Revision
 YYYY-MM-DD
 2018-11-07 MW First version
 '''
-
-
 # imports
 import numpy as np
 from pylab import ion
-# import matplotlib
-# matplotlib.use('Qt4Agg')
 from matplotlib.pyplot import figure, clf, axis, plot, draw, show, pause, subplots
 import matplotlib.pyplot as plt
 import sys
 import time
+import math
 
 # defines
 EPS = sys.float_info.epsilon
@@ -105,7 +102,7 @@ EPS = sys.float_info.epsilon
 # messages
 
 
-class PlotSystem:
+class PlotSystem(object):
     def __init__(self, min_x, max_x, min_y, max_y):
         self.fig = figure()
         ion()
@@ -113,56 +110,83 @@ class PlotSystem:
         self.ax = axis([min_x - 0.3, max_x + 0.3, min_y - 1, max_y + 1])
         plt.show(block=False)
         self.plane = [0, 0, 0, 17]
+        self.left_theta = 0
+        self.right_theta = math.pi
         self.hooked_flag = False
 
-    def update_plot(self, plane, left_dock, right_dock, left_rope, right_rope):
+    def update_plot(self, plane, left_pole, right_pole, left_rope, right_rope, left_spring, right_spring):
         clf()
+        plt.grid(True)
         # yaw = int(yaw)
         axis([self.ax[0], self.ax[1], self.ax[2], self.ax[3]])
 
         # Here we plot what is needed
         self.plot_plane(plane[0], plane[1], plane[2], plane[3])
-        self.plot_side(left_dock)
-        self.plot_side(right_dock)
+        # self.plot_pole(left_pole)
+        # self.plot_pole(right_pole)
 
-        if self.plane[1] >= 0:
+        if self.plane[1] >= 0 and self.hooked_flag is False:
             self.hooked_flag = True
+
+        if self.hooked_flag is False:
+            left_rope = [left_spring[1], [0, 0]]
+            right_rope = [right_spring[1], [0, 0]]
+        else:
+            left_rope = left_rope
+            right_rope = right_rope
 
         self.plot_rope(left_rope[0], left_rope[1])
         self.plot_rope(right_rope[0], right_rope[1])
-
+        # print("left spring", left_spring[0])
+        self.plot_torsion_spring(left_spring[0], left_spring[1])
+        self.plot_torsion_spring(right_spring[0], right_spring[1])
 
         self.fig.canvas.flush_events()
 
-    def plot_side(self, pos):
+    def plot_pole(self, pos):
         plt.plot(pos[0], pos[1], 'ro')
 
     def plot_plane(self, pos_x, pos_y, vel_x, vel_y):
         plt.arrow(pos_x, pos_y, vel_x, vel_y, head_width=0.05, head_length=0.1)
 
     def plot_rope(self, anchor1, anchor2):
-        plt.plot([anchor1[0], anchor2[0]], [anchor1[1], anchor2[1]], '-')
+        plt.plot([anchor1[0], anchor2[0]], [anchor1[1], anchor2[1]], 'r-')
+
+    def plot_torsion_spring(self, center, end_pos):
+        plt.plot(center[0], center[1], 'b,')
+        plt.plot([center[0], end_pos[0]], [center[1], end_pos[1]], 'k-')
+
+    def end_point_of_spring(self, center, rad, theta):
+        end_point = [0, 0]
+        end_point[0] = (math.cos(theta)) * rad + center[0]
+        end_point[1] = (math.sin(theta)) * rad + center[1]
+        return end_point
 
     def run(self):
-        time.sleep(0.2)
+        '''
+        This method is to simulate the real method. So only give what should be plotted nothing else
+        :return:
+        '''
+        time.sleep(0.05)
 
-        self.plane = [0, 3, 0, 17]  # pos then vel
+        self.plane = [0, -5, 0, 17]  # pos then vel
+        delta_theta = math.pi/16
 
-        # ALL THE IF NEEDS TO BE PUT IN UPDATE METHOD!!!!!!!!
-        left_pole = [-1, 0]
-        right_pole = [1, 0]
-        if self.hooked_flag is False:
-            left_rope = [[0, 0], left_pole]
-            right_rope = [[0, 0], right_pole]
-
-        if self.hooked_flag is True:
-            left_rope = [[self.plane[0], self.plane[1]], left_pole]
-            right_rope = [[self.plane[0], self.plane[1]], right_pole]
         # print("left pole", left_rope)
         # right_rope =
-
         while True:
-            self.update_plot(self.plane, left_pole, right_pole, left_rope, right_rope)
+            self.plane[1] += 0.4
+            if self.plane[1] >= 0:
+                self.left_theta += delta_theta
+                self.right_theta -= delta_theta
+
+            left_pole = [-1, 0]
+            right_pole = [1, 0]
+            left_spring = [left_pole, self.end_point_of_spring([-1, 0], 0.5, self.left_theta)]  # center, end_pos
+            right_spring = [right_pole, self.end_point_of_spring([1, 0], 0.5, self.right_theta)]
+            left_rope = [left_spring[1], [self.plane[0], self.plane[1]]]
+            right_rope = [right_spring[1], [self.plane[0], self.plane[1]]]
+            self.update_plot(self.plane, left_pole, right_pole, left_rope, right_rope, left_spring, right_spring)
 
             pause(0.00001)
 
