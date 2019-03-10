@@ -15,6 +15,9 @@ import math
 import numpy as np
 import matplotlib.pyplot as plt
 import sys
+from plot_system import PlotSystem
+# sys.path.append("..")
+# import plot
 
 # defines
 EPS = sys.float_info.min
@@ -291,8 +294,8 @@ class ar_model(object):
         Description: Simplified version, where the plane hooks at the middle of the rope,
         Which is fastened at equal fixed distance to the right and left
         '''
-        cnt = 0
 
+        plot = PlotSystem(-3, 3, -5, 40)
 
         cnt = 0
         while self.time < 4:
@@ -369,6 +372,8 @@ class ar_model(object):
             # print("spring_r_ang", self.spring_r_ang_rope)
             # print("angle_l_spring", self.spring_l_theta)
             # print("angle_r_spring", self.spring_r_theta)
+
+            plot.update_plot([self.plane_pos, self.plane_vel], )
 
             self.time += self.delta_t
 
