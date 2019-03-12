@@ -114,7 +114,7 @@ class PlotSystem(object):
         self.right_theta = math.pi
         self.hooked_flag = False
 
-    def update_plot(self, plane, left_pole, right_pole, left_rope, right_rope, left_spring, right_spring):
+    def update_plot(self, plane, left_pole, right_pole, left_rope, right_rope, left_spring, right_spring, extra_vec):
         clf()
         plt.grid(True)
         # yaw = int(yaw)
@@ -140,6 +140,7 @@ class PlotSystem(object):
         # print("left spring", left_spring[0])
         self.plot_torsion_spring(left_spring[0], left_spring[1])
         self.plot_torsion_spring(right_spring[0], right_spring[1])
+        self.plot_extra_vector(extra_vec[0], extra_vec[1], extra_vec[2], extra_vec[3])
 
         self.fig.canvas.flush_events()
 
@@ -148,6 +149,9 @@ class PlotSystem(object):
 
     def plot_plane(self, pos_x, pos_y, vel_x, vel_y):
         plt.arrow(pos_x, pos_y, vel_x, vel_y, head_width=0.05, head_length=0.1)
+
+    def plot_extra_vector(self, pos_x, pos_y, mag_x, mag_y):
+        plt.arrow(pos_x, pos_y, mag_x, mag_y, head_width=0.1, head_length=0.1)
 
     def plot_rope(self, anchor1, anchor2):
         plt.plot([anchor1[0], anchor2[0]], [anchor1[1], anchor2[1]], 'r-')
