@@ -15,9 +15,9 @@ import math
 import numpy as np
 import matplotlib.pyplot as plt
 import sys
+import time
 from plot_system import PlotSystem
-# sys.path.append("..")
-# import plot
+
 
 # defines
 EPS = sys.float_info.min
@@ -51,8 +51,8 @@ class ar_model(object):
         self.rope_k = 2
 
         self.plane_mass = 1.2
-        self.plane_pos = np.array([self.rope_len+0.05, 0.05])
-        self.plane_vel = np.array([0, -17])
+        self.plane_pos = np.array([0, 0])
+        self.plane_vel = np.array([0, 17])
         self.plane_acc = np.array([0, 0])
         self.plane_displacement = 0
         self.plane_k_e = 1/2 * self.plane_mass * self.plane_vel**2
@@ -61,18 +61,18 @@ class ar_model(object):
         self.spring_rad = 0.05
 
         self.spring_l_ang_rope = math.pi/2
-        self.spring_l_arm = 0.35  # this should be from the middle of the cylinder to the pulley
-        self.spring_l_anchor = np.array([0, 0])
-        self.spring_l_center_pos = np.array([0.05, 0])
-        self.spring_l_end_point = np.array([0.05, 0.05])
+        self.spring_l_arm = 0.35  # this is the length of the arm
+        self.spring_l_center_pos = np.array([-2, 0])
+        self.spring_l_anchor = np.array([self.spring_l_center_pos[0] - self.spring_rad, self.spring_l_center_pos[1]])
+        self.spring_l_end_point = np.array([self.spring_l_center_pos[0], self.spring_l_center_pos[1] - self.spring_rad])
         self.spring_l_eq = -math.pi/2
         self.spring_l_theta = -math.pi/2
 
         self.spring_r_ang_rope = math.pi/2
         self.spring_r_arm = 0.35  # meters
-        self.spring_r_anchor = np.array([self.rope_len*2 + 0.1, 0])
-        self.spring_r_center_pos = np.array([self.spring_r_anchor[0]-0.05, 0])
-        self.spring_r_end_point = np.array([self.spring_r_anchor[0]-0.05, self.spring_r_anchor[1]+0.05])
+        self.spring_r_center_pos = np.array([2, 0])
+        self.spring_r_anchor = np.array([self.spring_r_center_pos[0] + self.spring_rad, self.spring_r_center_pos[1]])
+        self.spring_r_end_point = np.array([self.spring_r_center_pos[0], self.spring_r_center_pos[1] - self.spring_rad])
         self.spring_r_eq = -math.pi/2
         self.spring_r_theta = -math.pi/2
 
@@ -240,7 +240,6 @@ class ar_model(object):
         return end_point, theta
 
     def calc_end_point_from_rope_force(self, spring_k, rope_ang, spring_rad, rope_force, spring_center):
-        end_point = np.array(np.zeros(2))
         '''
         spring_k: The spring constant of the rope
         rope_ang: There is an axis from the end of the arm going parallel with the y axis, the angle is measured from this axis to the rope CCW
@@ -249,20 +248,20 @@ class ar_model(object):
         Spring center: (x, y) position of where the spring is mounted
 
         '''
+        end_point = np.array(np.zeros(2))
         # rope_force = np.linalg.norm(rope_force)
         sign_r_f = np.sign(rope_force)
-        print("rope f", rope_force)
+        # print("rope f", rope_force)
         rope_force = sum(rope_force**2)**0.5
         if sign_r_f[0] < 0:
             rope_force *= -1
-        print("sign", sign_r_f)
+        # print("sign", sign_r_f)
 
         theta_spring = (spring_rad * rope_force * math.sin(rope_ang)) / (- spring_k)
         # print("math.sin(rope_ang)", math.sin(rope_ang))
         # print("rope_force", rope_force)
         # print("spring_rad", spring_rad)
-        #
-        # print("theta_spring", theta_spring * TO_DEG)
+        print("theta_spring", theta_spring * TO_DEG)
 
         if theta_spring >= math.pi:
             theta_spring = -math.pi
@@ -271,6 +270,11 @@ class ar_model(object):
         end_point[1] = (math.sin(theta_spring)) * spring_rad + spring_center[1]
 
         return end_point, theta_spring
+
+    def calc_end_pos_from_force(self, spring_theta, force, rope_theta):
+        pull = force * math.sin(spring_theta + rope_theta)
+
+
 
     def main(self):
         damping = 0.001
@@ -295,7 +299,7 @@ class ar_model(object):
         Which is fastened at equal fixed distance to the right and left
         '''
 
-        plot = PlotSystem(-3, 3, -5, 40)
+        plot = PlotSystem(-3, 3, -5, 20)
 
         cnt = 0
         while self.time < 4:
@@ -304,6 +308,7 @@ class ar_model(object):
 
             # connect the rope from the hook point to the springs end-points
             hook_point = self.plane_pos
+
             f_rope_l = model.connect_rope(self.rope_len, self.rope_k, hook_point, self.spring_l_end_point)
             f_rope_r = model.connect_rope(self.rope_len, self.rope_k, hook_point, self.spring_r_end_point)
             # print("rope_force", f_rope_l, f_rope_r)
@@ -312,14 +317,14 @@ class ar_model(object):
             f_damping_l = -self.plane_vel*damping
             f_damping_r = -self.plane_vel*damping
 
-            # tau_l_spring = -self.spring_k * (self.spring_l_ang_rope - self.spring_l_eq)  # The torsion spring contrib
-            # tau_r_spring = -self.spring_k * (self.spring_r_ang_rope - self.spring_r_eq)  # The torsion spring contrib
-            tau_l_spring = -self.spring_k * (self.spring_l_theta - self.spring_l_eq)  # The torsion spring contrib
-            tau_r_spring = -self.spring_k * (self.spring_r_theta - self.spring_r_eq)  # The torsion spring contrib
-            print("spring_l_theta, spring_l_ang_rope", self.spring_l_theta, self.spring_l_ang_rope)
-            print("spring_r_theta, spring_r_ang_rope", self.spring_r_theta, self.spring_r_ang_rope)
-            # print("tau_l_spring vs r", tau_l_spring, tau_r_spring)
-
+            tau_l_spring = -self.spring_k * (self.spring_l_ang_rope - self.spring_l_eq)  # The torsion spring contrib
+            tau_r_spring = -self.spring_k * (self.spring_r_ang_rope - self.spring_r_eq)  # The torsion spring contrib
+            # tau_l_spring = -self.spring_k * (self.spring_l_theta - self.spring_l_eq)  # The torsion spring contrib
+            # tau_r_spring = -self.spring_k * (self.spring_r_theta - self.spring_r_eq)  # The torsion spring contrib
+            # print("spring_l_theta, spring_l_ang_rope", self.spring_l_theta, self.spring_l_ang_rope)
+            # print("spring_r_theta, spring_r_ang_rope", self.spring_r_theta, self.spring_r_ang_rope)
+            # # print("tau_l_spring vs r", tau_l_spring, tau_r_spring)
+            #
             f_l_spring = tau_l_spring/(self.spring_l_arm * self.spring_l_ang_rope)
             f_r_spring = tau_r_spring/(self.spring_r_arm * self.spring_r_ang_rope)
 
@@ -339,22 +344,13 @@ class ar_model(object):
             # print("spring_l_end_point", self.spring_l_end_point)
             # print("spring_r_end_point", self.spring_r_end_point)
 
-            # the angle the rope makes from for each side
+            # Only the angle the rope makes using endpoint and plane pos
             theta_rope_l = math.atan2(self.plane_pos[1] - self.spring_l_end_point[1],
-                                      self.spring_l_end_point[0] - self.plane_pos[0])
+                                      self.plane_pos[0] - self.spring_l_end_point[0])
             theta_rope_r = math.atan2(self.plane_pos[1] - self.spring_r_end_point[1],
-                                      self.spring_r_end_point[0] - self.plane_pos[0])
-            # print("theta rope_l", theta_rope_l * TO_DEG)
-            # print("theta rope_r", theta_rope_r * TO_DEG)
-            #
-            # print("spring_l_theta", self.spring_l_theta * TO_DEG)
-            # print("spring_r_theta", self.spring_r_theta * TO_DEG)
-
-            # # calc the angle between the spring and the rope
-            self.spring_l_ang_rope = theta_rope_l - self.spring_l_theta #math.pi / 2 - self.spring_l_theta + theta_rope_l + math.pi / 2
-            self.spring_r_ang_rope = theta_rope_r - self.spring_r_theta #math.pi / 2 - self.spring_r_theta + theta_rope_r + math.pi / 2
-
-            # print("spring_rope_ang", self.spring_l_ang_rope* TO_DEG, self.spring_r_ang_rope * TO_DEG)
+                                      self.plane_pos[0] - self.spring_r_end_point[0])
+            print("theta rope_l", theta_rope_l * TO_DEG)
+            print("theta rope_r", theta_rope_r * TO_DEG)
 
             self.spring_l_end_point, self.spring_l_theta = self.calc_end_point_from_rope_force(self.spring_k,
                                                                                                self.spring_l_ang_rope,
@@ -366,6 +362,10 @@ class ar_model(object):
                                                                                                self.spring_rad,
                                                                                                f_rope_r,
                                                                                                self.spring_r_center_pos)
+            # # Lastly calc the angle between the rope and the spring
+            self.spring_l_ang_rope = theta_rope_l - self.spring_l_theta  # math.pi / 2 - self.spring_l_theta + theta_rope_l + math.pi / 2
+            self.spring_r_ang_rope = theta_rope_r - self.spring_r_theta  # math.pi / 2 - self.spring_r_theta + theta_rope_r + math.pi / 2
+
             # print("l_end_point", self.spring_l_end_point)
             # print("r_end_point", self.spring_r_end_point)
             # print("spring_l_ang", self.spring_l_ang_rope)
@@ -373,7 +373,10 @@ class ar_model(object):
             # print("angle_l_spring", self.spring_l_theta)
             # print("angle_r_spring", self.spring_r_theta)
 
-            plot.update_plot([self.plane_pos, self.plane_vel], )
+            plot_plane = np.append(self.plane_pos.tolist(), self.plane_vel.tolist())
+            plot.update_plot(plot_plane,
+                             [self.spring_l_end_point, self.plane_pos], [self.spring_r_end_point, self.plane_pos],
+                             [self.spring_l_center_pos, self.spring_l_end_point], [self.spring_r_center_pos, self.spring_r_end_point])
 
             self.time += self.delta_t
 
@@ -391,6 +394,7 @@ class ar_model(object):
 
             cnt += 1
             print("")
+            # time.sleep(0.0005)
 
         # y = [item[1] for item in pos_list]
 
