@@ -24,8 +24,9 @@ TO_DEG = 180 / math.pi
 # We're using SI units
 class ar_model(object):
     def __init__(self):
-        self.plane_verbose = True
+        self.plane_verbose = False
         self.cr_verbose = True
+        self.right_arm_verbose = False
         # lists
         self.plane_pos_l = []
         self.plane_vel_l = []
@@ -44,15 +45,15 @@ class ar_model(object):
         self.spring_init_vel = 0
 
         self.time = 0.0
-        self.delta_t = 0.005
+        self.delta_t = 0.01
 
         self.rope_len = 1
-        self.rope_k = 2
+        self.rope_k = 200
 
         self.plane_mass = 1.2
-        self.plane_pos = np.array([0, -1]) #The plane starts one meter before the docking station before it is hooked
-        self.plane_vel = np.array([0, 17])
-        self.plane_acc = np.array([0, 0])
+        self.plane_pos = np.array([0, -1, 0]) #The plane starts one meter before the docking station before it is hooked
+        self.plane_vel = np.array([0, 17, 0])
+        self.plane_acc = np.array([0, 0, 0])
         self.plane_displacement = 0
         self.plane_k_e = 1/2 * self.plane_mass * self.plane_vel**2
         self.spring_k = 42
@@ -82,6 +83,15 @@ class ar_model(object):
         self.e_plane = 0
         self.e_spring = 0
         self.e_loss = 10  # percent. Might not be usaable
+
+        #Right arm kinematics
+        self.omega_right = 0
+        self.theta_right = 0
+        self.right_arm_position_x_l = []
+        self.right_arm_position_y_l = []
+        self.right_rope_anchor_list = []#self.right_rope_anchor_l = np.empty([3, 1], dtype=float)
+        self.right_rope_anchor_y = []
+
 
     def spring_forcediagram(self):
         start_f = 0
@@ -163,24 +173,50 @@ class ar_model(object):
 
         plt.subplot(3, 1, 3)
   
+        plt.plot([item[0] for item in self.plane_pos_l], [item[1] for item in self.plane_pos_l], 'r')
+        plt.xlabel('plane x pos', fontsize=18)
+        plt.ylabel('Plane y pos', fontsize=16)
+
+        plt.show()
+
+    def plot_right_arm(self):
+        #print(self.right_arm_position_l)
+          
+        
+        plt.subplot(2, 1, 1)
+        plt.title("Different vector value plots")
+        plt.plot(self.right_arm_position_x_l, self.right_arm_position_y_l, 'ro')
+        plt.xlabel('X values of position vector', fontsize=18)
+        plt.ylabel('Y Values of position vector', fontsize=16)
+        #print("Right rope anchor", self.right_rope_anchor_list)
+        #for item in self.right_rope_anchor_list:
+        #    print("Item", item)
+        plt.subplot(2, 1, 2)
+        plt.plot([item[0] for item in self.right_rope_anchor_list], [item[1] for item in self.right_rope_anchor_list], 'r')
+        plt.xlabel('rra_x', fontsize=18)
+        plt.ylabel('rra_y', fontsize=16)
+        '''
+        plt.subplot(3, 1, 3)
+  
         plt.plot(self.time_l, [item[1] for item in self.plane_acc_l], 'r')
         plt.xlabel('Time', fontsize=18)
         plt.ylabel('Plane y acceleration', fontsize=16)
-
+        '''
         plt.show()
+
 
     def total_energy(self, kinetic_list, potential_list, time_list): #Used with linear spring
         x = time_list
         p = potential_list
         k = kinetic_list
 
-        plt.subplot(3, 1, 1)
+        plt.subplot(2, 2, 1)
         plt.title('Energy in system')
         plt.plot(x, k, 'r')
         plt.xlabel('Time since hooking', fontsize=18)
         plt.ylabel('Plane', fontsize=16)
 
-        plt.subplot(3, 1, 2)
+        plt.subplot(2, 2, 2)
         plt.plot(x, p, 'r')
         plt.xlabel('Time since hooking', fontsize=18)
         plt.ylabel('Spring', fontsize=16)
@@ -188,11 +224,17 @@ class ar_model(object):
         s = [sum(s) for s in zip(p, k)]
         # print(len(s))
 
-        plt.subplot(3, 1, 3)
+        plt.subplot(2, 2, 3)
         plt.plot(x, s, 'r')
         plt.xlabel('Time since hooking', fontsize=18)
         plt.ylabel('Total', fontsize=16)
 
+        plt.subplot(2, 2, 3)
+        plt.plot(x, s, 'r')
+        plt.xlabel('Time since hooking', fontsize=18)
+        plt.ylabel('Total', fontsize=16)
+
+        
         plt.show()
 
     def gen_plot(self, plot_list, time_list, title=""): #General plotting
@@ -280,7 +322,7 @@ class ar_model(object):
 
         return end_point, theta_spring
 
-    def right_arm_kin(self, force_vector):
+    def right_arm_kin(self, force_vector, position_vector):
         '''
         The kinematics of the RIGHT arm is calculated and stored in this method
         
@@ -299,20 +341,66 @@ class ar_model(object):
         We expect to get angular acceleration about the z axis, therefore we probably want to use 3D vectors
 
         '''
-        force_vector_3D = np.array([force_vector[0], force_vector[1], 0])
-        r = np.array([0, 0.4, 0]) #The position vector of the point where the force is applied relative to teh axis of rotation
-        acc_vec = np.cross(r, force_vector)/0.006
+        L = 0.4 #The length of the arm
+        #force_vector_3D = np.array([force_vector[0], force_vector[1], 0])
+        #print("Start theta", math.atan2(position_vector[1], position_vector[0]))
+        #The position vector of the point where the force is applied relative to teh axis of rotation
+        alpha_vec = np.cross(position_vector, force_vector)/0.006
+        #This acceleration moves the arm
+        self.omega_right += alpha_vec[2]*self.delta_t
+        self.theta_right += self.omega_right*self.delta_t
+        position_vector[0] = L*math.cos(self.theta_right)
+        position_vector[1] = L*math.sin(self.theta_right)
+        if self.right_arm_verbose:
+            print("Omega right", self.omega_right)
+            print("Theta right", self.theta_right)
+            print("Position arm right", position_vector)
+            print("Acceleration of arm", alpha_vec)
+        self.right_arm_position_x_l.append(position_vector[0])
+        self.right_arm_position_y_l.append(position_vector[1])
         #M = 0.200 #0.2 kg seems fair for a wooden beam as an arm
         #This vector should then move the arm, so r have to be changed, but for starters, lets just try to print how the acceleration is when the arm is moved.
-        print("Acceleration of arm", acc_vec)
+        return position_vector
 
-    def left_arm_kin(self, rope_y_force):
+    def left_arm_kin(self, force_vector, position_vector):
         '''
-        The kinematics of the LEFT arm is calculated and stored in this method
-        The force along the y axis from the rope will rotate the arm following
+        The kinematics of the RIGHT arm is calculated and stored in this method
+        
+        *****Not 100 % sure******
+        The force along the y axis from the rope will rotate the arm fo/llowing
         alpha = F_spring_y / M_arm
+        *****Not 100 % sure******
+        
+        *****From www.maplesoft.com/content/EngineeringFundamentals/4/mapledocument_30/Rotation MI and Torque.pdf*****
+        torque_vector = r_vector crossproduct F_vector = Inertia * acceleration_vector
+        *****From www.maplesoft.com/content/EngineeringFundamentals/4/mapledocument_30/Rotation MI and Torque.pdf*****
+        From this i think we can say that we want to solve for the acceleration_vector in order to calculate how the arm moves, thus
+        (r_vector (crossproduct) F_vector) / Inertia_arm = Acceleration_vector
+        I = M*r^2 lets use the formula for a point mass rotating a distance r from the axis, thus the mass of the arm and the distance to the COM should be used 
+        I = 0.15*0.2^2 = 0.006
+        We expect to get angular acceleration about the z axis, therefore we probably want to use 3D vectors
+
         '''
-    
+        L = 0.4 #The length of the arm
+        #force_vector_3D = np.array([force_vector[0], force_vector[1], 0])
+        #print("Start theta", math.atan2(position_vector[1], position_vector[0]))
+        #The position vector of the point where the force is applied relative to teh axis of rotation
+        alpha_vec = np.cross(position_vector, force_vector)/0.006
+        #This acceleration moves the arm
+        self.omega_right += alpha_vec[2]*self.delta_t
+        self.theta_right += self.omega_right*self.delta_t
+        position_vector[0] = L*math.cos(self.theta_right)
+        position_vector[1] = L*math.sin(self.theta_right)
+        if self.right_arm_verbose:
+            print("Omega right", self.omega_right)
+            print("Theta right", self.theta_right)
+            print("Position arm right", position_vector)
+            print("Acceleration of arm", alpha_vec)
+        self.right_arm_position_x_l.append(position_vector[0])
+        self.right_arm_position_y_l.append(position_vector[1])
+        #M = 0.200 #0.2 kg seems fair for a wooden beam as an arm
+        #This vector should then move the arm, so r have to be changed, but for starters, lets just try to print how the acceleration is when the arm is moved.
+        return position_vector
 
     
 
@@ -337,18 +425,41 @@ class ar_model(object):
        
         cnt = 0
         plane_hooked = False
-        f_spring_system = np.array([0, 0])
-        while self.time < 3:
+        f_spring_system = np.array([0.0, 0.0, 0.0])
+        start_position_vector_right_arm = np.array([-0.4, 0.0, 0.0]) #NEED a REFERENCE vector for its position in the coordinate system
+        vras_x = -0.4 #VectorRightArmStart
+        vras_y = 0
+        vlas_x = 0.4
+        vlas_y = 0
+        start_position_vector_left_arm = np.array(([0.4, 0.0, 0.0]))
+        position_vector_right_arm = start_position_vector_right_arm
+        position_vector_left_arm = start_position_vector_left_arm
+        hook_point = np.array([0.0, 0.0, 0.0]) #As the plane are one meter below the hook point (seen in the y direction)
+        start_left_rope_anchor = np.array([-1.0, 0.0, 0.0]) 
+        start_right_rope_anchor = np.array([1.0, 0.0, 0.0]) 
+        self.theta_right = math.atan2(start_position_vector_right_arm[1], start_position_vector_right_arm[0])
+        
+        while self.time < 0.5:
             '''
             Description: This version introduces the two arms, but with no springs attached
             '''
             
+
+            #right_rope_anchor = np.array([start_right_rope_anchor[0]-start_position_vector_right_arm[0]+position_vector_right_arm[0],\
+            #start_right_rope_anchor[1]-start_position_vector_right_arm[1]+position_vector_right_arm[1],\
+            #start_right_rope_anchor[2]-start_position_vector_right_arm[2]+position_vector_right_arm[2]])
+            rra_x = start_right_rope_anchor[0]-vras_x+ position_vector_right_arm[0]
+            rra_y = start_right_rope_anchor[1]-vras_y+ position_vector_right_arm[1]
+            right_rope_anchor = np.array([rra_x, rra_y, 0.0])
+            self.right_rope_anchor_list.append(right_rope_anchor)#np.append(self.right_rope_anchor_l, right_rope_anchor)
+            
+            lra_x = start_left_rope_anchor[0]-vlas_x+ position_vector_left_arm[0]
+            lra_y = start_left_rope_anchor[1]-vlas_y+ position_vector_left_arm[1]
+            left_rope_anchor = np.array([lra_x, lra_y, 0.0])
+            #self.right_rope_anchor_x.append(right_rope_anchor[0])
+            #self.right_rope_anchor_y.append(right_rope_anchor[1])
             #We have two ropes each going from their left anchor to the hooking point
             #These lines dont need to be in the while loop
-            hook_point = np.array([0, 0]) #As the plane are one meter below the hook point (seen in the y direction)
-            left_rope_anchor = np.array([-1, 0]) 
-            right_rope_anchor = np.array([1, 0]) 
-            
             if not plane_hooked:
                 f_rope_l = model.connect_rope(self.rope_len, self.rope_k, hook_point, left_rope_anchor)
                 f_rope_r = model.connect_rope(self.rope_len, self.rope_k, hook_point, right_rope_anchor)
@@ -358,10 +469,15 @@ class ar_model(object):
             if plane_hooked:
                 f_rope_l = model.connect_rope(self.rope_len, self.rope_k, self.plane_pos, left_rope_anchor)
                 f_rope_r = model.connect_rope(self.rope_len, self.rope_k, self.plane_pos, right_rope_anchor)
-                self.right_arm_kin(f_rope_r)
+                position_vector_right_arm = self.right_arm_kin(f_rope_r, position_vector_right_arm)
+                position_vector_left_arm = self.left_arm_kin(f_rope_l, position_vector_left_arm)
+                #self.right_arm_position_l.append(position_vector_right_arm)
                 f_spring_system = f_rope_l + f_rope_r
+
                 if self.cr_verbose:
                     print("Force from the two ropes", f_spring_system)
+                    print("Force from left rope", f_rope_l)
+                    print("Force from right rope", f_rope_r)
             #f_spring_system = f_rope_l + f_rope_r
             #The dynamics of the plane
             self.plane_acc = f_spring_system / self.plane_mass
@@ -394,7 +510,7 @@ class ar_model(object):
             #Moving thrugh time with small steps
             self.time += self.delta_t
 
-            
+        self.plot_right_arm()
         self.plot_plane()
 
         '''
