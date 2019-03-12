@@ -114,7 +114,7 @@ class PlotSystem(object):
         self.right_theta = math.pi
         self.hooked_flag = False
 
-    def update_plot(self, plane, left_pole, right_pole, left_rope, right_rope, left_spring, right_spring):
+    def update_plot(self, plane, left_rope, right_rope, left_spring, right_spring):
         clf()
         plt.grid(True)
         # yaw = int(yaw)
@@ -122,8 +122,6 @@ class PlotSystem(object):
 
         # Here we plot what is needed
         self.plot_plane(plane[0], plane[1], plane[2], plane[3])
-        # self.plot_pole(left_pole)
-        # self.plot_pole(right_pole)
 
         if self.plane[1] >= 0 and self.hooked_flag is False:
             self.hooked_flag = True
@@ -142,9 +140,6 @@ class PlotSystem(object):
         self.plot_torsion_spring(right_spring[0], right_spring[1])
 
         self.fig.canvas.flush_events()
-
-    def plot_pole(self, pos):
-        plt.plot(pos[0], pos[1], 'ro')
 
     def plot_plane(self, pos_x, pos_y, vel_x, vel_y):
         plt.arrow(pos_x, pos_y, vel_x, vel_y, head_width=0.05, head_length=0.1)
@@ -186,7 +181,10 @@ class PlotSystem(object):
             right_spring = [right_pole, self.end_point_of_spring([1, 0], 0.5, self.right_theta)]
             left_rope = [left_spring[1], [self.plane[0], self.plane[1]]]
             right_rope = [right_spring[1], [self.plane[0], self.plane[1]]]
-            self.update_plot(self.plane, left_pole, right_pole, left_rope, right_rope, left_spring, right_spring)
+            self.update_plot(self.plane,
+                             left_pole, right_pole,
+                             left_rope, right_rope,
+                             left_spring, right_spring)
 
             pause(0.00001)
 
