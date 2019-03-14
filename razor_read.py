@@ -69,7 +69,7 @@ style.use('fivethirtyeight')
 #     ax.plot(xs, ys)
 #     return ax
 
-#plot = PlotRPY(timer, yaw)
+plot = PlotRPY(timer, yaw)
 
 ser.readline()  # This solves the sync problems...
 filesaver = log_yaw()
