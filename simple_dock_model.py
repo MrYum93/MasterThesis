@@ -52,7 +52,7 @@ class ar_model(object):
         self.rope_len = 1
         self.rope_k = 200
 
-        self.plane_mass = 1.2
+        self.plane_mass = 0.7
         self.plane_pos = np.array([0, -2, 0]) #The plane starts one meter before the docking station before it is hooked
         self.plane_vel = np.array([0, 5, 0])
         self.plane_acc = np.array([0, 0, 0])
@@ -89,7 +89,7 @@ class ar_model(object):
 
         #Both arm kinematics
         self.arm_dampening = 0.9
-        self.torsion_K = 50
+        self.torsion_K = 470
         #Right arm kinematics
         self.omega_right = 0
         self.theta_right = 0
@@ -520,7 +520,7 @@ class ar_model(object):
             f_rope_l = model.connect_rope(self.rope_len, self.rope_k, hook_point, left_rope_anchor)
             f_rope_r = model.connect_rope(self.rope_len, self.rope_k, hook_point, right_rope_anchor)
             f_spring_system = f_rope_l + f_rope_r
-            f_damping =- 0.2*self.plane_vel
+            f_damping = -f_spring_system*0.1
             f_spring_system += f_damping
             position_vector_right_arm = self.right_arm_kin(np.negative(f_rope_r), position_vector_right_arm)
             position_vector_left_arm = self.left_arm_kin(np.negative(f_rope_l), position_vector_left_arm)
@@ -569,7 +569,7 @@ class ar_model(object):
             #print("Righ rope", right_rope)
             left_arm = [[start_left_rope_anchor[0]-vlas_x, start_left_rope_anchor[1]-vlas_y], [left_rope_anchor[0], left_rope_anchor[1]]]
             right_arm = [[start_right_rope_anchor[0]-vras_x, start_right_rope_anchor[1]-vras_y], [right_rope_anchor[0], right_rope_anchor[1]]]
-            extra_vec = [0, 0, 0, 0]#extra_vec = [right_rope_anchor[0], right_rope_anchor[1], f_rope_r[0], f_rope_r[1]]
+            extra_vec = [right_rope_anchor[0], right_rope_anchor[1], f_spring_system[0], f_spring_system[1]]#extra_vec = [right_rope_anchor[0], right_rope_anchor[1], f_rope_r[0], f_rope_r[1]]
             plot.update_plot(plane_plot, [0, 0], [0, 0], left_rope, right_rope, left_arm, right_arm, extra_vec) #Plane[ x, y, x vel, y vel], [0, 0], [0, 0], left_rope[armx, army, planex, planey], 
             #right_rope[armx, army, planex, planey], left_arm[centerx, centery, endpointx, endpointy], right_arm[centerx, centery, endpointx, endpointy]
             time.sleep(0.01)
