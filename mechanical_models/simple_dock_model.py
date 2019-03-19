@@ -51,7 +51,7 @@ class ar_model(object):
         self.rope_len = 1
         self.rope_k = 200
 
-        self.plane_mass = 1.2
+        self.plane_mass = 0.7
         self.plane_pos = np.array([0, -1, 0]) #The plane starts one meter before the docking station before it is hooked
         self.plane_vel = np.array([0, 17, 0])
         self.plane_acc = np.array([0, 0, 0])
