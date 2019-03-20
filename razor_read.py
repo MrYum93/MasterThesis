@@ -72,7 +72,7 @@ style.use('fivethirtyeight')
 plot = PlotRPY(timer, yaw)
 
 ser.readline()  # This solves the sync problems...
-filesaver = log_yaw()
+#filesaver = log_yaw()
 plot_cnt = 0
 while True:
     yaw0 = ser.read()
@@ -95,10 +95,10 @@ while True:
     yaw_l.append(yaw_float[0])
     pitch_l.append(pitch_float[0])
     roll_l.append(roll_float[0])
-    filesaver.append_float(yaw_float[0])
-    print("timer vs yaw", timer, yaw_float[0])
-    print("timer vs pitch", timer, pitch_float[0])
-    print("timer vs roll", timer, roll_float[0])
+    #filesaver.append_float(yaw_float[0])
+    #print("timer vs yaw", timer, yaw_float[0])
+    #print("timer vs pitch", timer, pitch_float[0])
+    #print("timer vs roll", timer, roll_float[0])
 
     if plot_cnt >= 5:
         # plot.update_plot(timer, yaw_float[0])
