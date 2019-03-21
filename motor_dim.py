@@ -90,19 +90,13 @@ def fw_x_to_motor_r(fw_x):
     global omega_list
     global acceleration_torque_list
     global RPM_list
-<<<<<<< HEAD
-=======
     global rope_speed_list
 
->>>>>>> e2821b4043c4d88a7ed3e5759251bf80b188d9ea
     if last_rope_unwinded != 0:
         delta_r_u = rope_unwinded - last_rope_unwinded
         #print("Delta RU", delta_r_u)
         rope_speed = delta_r_u / 0.001
-<<<<<<< HEAD
-=======
         rope_speed_list.append(rope_speed)
->>>>>>> e2821b4043c4d88a7ed3e5759251bf80b188d9ea
         #r = diameter/2
         RPM = rope_speed /(r*0.10472)
         RPM_list.append(RPM)
