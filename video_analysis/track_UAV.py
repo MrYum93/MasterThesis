@@ -34,21 +34,20 @@ YYYY-MM-DD
 '''
 
 import cv2
-import keyboard
 import numpy as np
-from pynput.mouse import Button, Controller as MouseController
-
 
 class TrackUAV(object):
     def __init__(self):
-        self.mouse = MouseController()
-
         self.video_fps = 30
         self.video_one_path = '../data/IMG_0090.MOV'
         self.video_one_len = 2.8
         self.video_one_max_seq = self.video_fps * self.video_one_len - 1
 
-        self.tracker = cv2.TrackerTLD_create()
+        self.video_two_path = '../data/IMG_0093.MOV'
+        self.video_two_len = 16.90
+        self.video_two_max_seq = self.video_fps * self.video_two_len - 1
+
+        self.tracker = cv2.TrackerKCF_create()  # TrackerTLD_create()
 
         self.center_of_bbox = []
         self.frame_list = []
@@ -69,7 +68,7 @@ class TrackUAV(object):
             # Tracking success
             p1 = (int(bbox[0]), int(bbox[1]))
             p2 = (int(bbox[0] + bbox[2]), int(bbox[1] + bbox[3]))
-            cv2.rectangle(frame, p1, p2, (255, 0, 0), 2, 1)
+            cv2.rectangle(frame, p1, p2, (0, 0, 0), 2, 1)
             x = int(bbox[0] + (bbox[2]/2))
             y = int(bbox[1] + (bbox[3]/2))
             self.center_of_bbox.append([x, y])
@@ -140,19 +139,12 @@ class TrackUAV(object):
         # cv2.circle(gray, (bbox[0] + bbox[2], bbox[1]), 3, (0, 0, 255), -1)
         # cv2.line(gray, (bbox[0], bbox[1]), bbox[0] + bbox[2], [0,0,255])
 
-
-
-    def get_mouse_pos_(self):
-        if self.mouse.click(Button.left):
-            return (self.mouse.position[0],
-                    self.mouse.position[1])
-
     def main(self):
-        path_to_video = self.video_one_path
+        path_to_video = self.video_two_path
         cap = self.open_video(path_to_video)
 
-        frame_cnt = 19
-        # frame_cnt = 20
+        # frame_cnt = 19
+        frame_cnt = 422
         cap.set(1, frame_cnt)  # 1 is to tell opencv that we wish to display a single frame
 
         ret, frame = cap.read()
@@ -171,19 +163,22 @@ class TrackUAV(object):
             self.update_tracker(gray)
 
             window_name = 'Frame no in while loop ' + str(frame_cnt)
+            cv2.namedWindow(window_name, cv2.WINDOW_FULLSCREEN)
             cv2.imshow(window_name, gray)
 
-            if cv2.waitKey(0) & 0xFF == ord('q'):
+            key = cv2.waitKey(0)
+
+            if key == ord('q'):
                 print('you decided to quit at frame', frame_cnt)
                 break
-            if keyboard.is_pressed('a'):
+            elif key == ord('a'):
                 print('Going back one frame')
                 frame_cnt -= 1
-            elif keyboard.is_pressed('d'):
+            elif key == ord('d'):
                 print('Going forward one frame')
                 frame_cnt += 1
-                # cap.set(1, frame_cnt)
-            cv2.destroyAllWindows()
+
+            # cv2.destroyAllWindows()
 
             self.frame_list.append(frame_cnt)
 
