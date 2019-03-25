@@ -93,6 +93,44 @@ class ar_model(object):
         self.right_rope_anchor_list = []#self.right_rope_anchor_l = np.empty([3, 1], dtype=float)
         self.right_rope_anchor_y = []
 
+        #Motor constants
+        self.radius_list = []
+        self.length_list = []
+
+
+
+    def pre_compute_spiral(self):
+        start_r = 0.015
+        distance_windings = 0.005/(2*math.pi)
+        theta = 0.0
+        delta_theta = 0.001
+        l = 0.0
+        #global radius_list
+        #global length_list
+        last_r = start_r
+        r = start_r + distance_windings * theta
+        #The equation of the spiral will then be r = start_r+distance_windings*thetha
+        #The length of the spiral is calculated as the length of a curve in polar coordinates https://www.intmath.com/blog/mathematics/length-of-an-archimedean-spiral-6595
+        while l<5:
+            theta += delta_theta
+            r = start_r + distance_windings * theta
+            self.radius_list.append(r)
+            l += math.sqrt(r**2+((r-last_r)/delta_theta)**2)*delta_theta
+            self.radius_list.append(r)
+            self.length_list.append(l)
+            last_r = r
+
+    
+    def l_to_r(self, l):
+        #print("Went here")
+        #print("Radius 0", radius_list[len(radius_list)-1], "length 0", length_list[len(length_list)-1])
+        counter = 0
+        for i in self.length_list:
+            if i <= l+0.0001 and i >= l-0.0001:
+
+                return self.radius_list[counter]
+            counter += 1
+
 
     def spring_forcediagram(self):
         start_f = 0
@@ -470,11 +508,14 @@ class ar_model(object):
                 if self.cr_verbose:
                     print("Force from the two ropes", f_spring_system)
             if plane_hooked:
+                #Calculate new rope length based on how much the motors has turned
+                
                 f_rope_l = model.connect_rope(self.rope_len, self.rope_k, self.plane_pos, left_rope_anchor)
                 f_rope_r = model.connect_rope(self.rope_len, self.rope_k, self.plane_pos, right_rope_anchor)
                 position_vector_right_arm = self.right_arm_kin(f_rope_r, position_vector_right_arm)
                 position_vector_left_arm = self.left_arm_kin(f_rope_l, position_vector_left_arm)
                 #self.right_arm_position_l.append(position_vector_right_arm)
+                #Add the braking force from the two motors to the total force applied to the FW
                 f_spring_system = f_rope_l + f_rope_r
 
                 if self.cr_verbose:

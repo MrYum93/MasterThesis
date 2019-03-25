@@ -49,6 +49,7 @@ class ar_model(object):
         self.time = 0.0
         self.delta_t = 0.01
 
+        self.neutral_rope_length = 1
         self.rope_len = 1
         self.rope_k = 200
 
@@ -104,6 +105,18 @@ class ar_model(object):
         self.left_arm_position_x_l = []
         self.left_arm_position_y_l = []
 
+        #Left motor
+        self.motor_l_theta = 0
+        self.motor_l_omega = 0
+        self.motor_l_alpha = 0
+        self.motor_l_radius = 0.1 #The radius where the rope are coiled
+        
+        
+        #Right motor
+        #self.motor_r_thetha
+        #self.motor_r_omega
+        #self.motor_r_alpha
+        #self.motor_r_radius #The radius where the rope are coiled
 
     def spring_forcediagram(self):
         start_f = 0
@@ -273,9 +286,12 @@ class ar_model(object):
             print("Rope stretch", stretch)
         lhat = stretch / (stretch**2).sum()**0.5 #Normalized direction vector
         stretch = np.linalg.norm(stretch) - naturel_length
+        #print("Rope stretch", stretch)
         force = -spring_k*stretch*lhat
         if self.cr_verbose:
             print("Rope force", force)
+        if stretch < 0:
+            return np.array([0, 0, 0])
         return force
 
     def calc_end_point_from_angle(self, end_point, center_of_circle, radius, plane_pos):
@@ -442,6 +458,13 @@ class ar_model(object):
         #M = 0.200 #0.2 kg seems fair for a wooden beam as an arm
         #This vector should then move the arm, so r have to be changed, but for starters, lets just try to print how the acceleration is when the arm is moved.
         return position_vector
+    
+    def left_motor(self, plane_hooked):
+        if plane_hooked:
+            self.motor_l_alpha = 0
+            self.motor_l_omega += self.motor_l_alpha*self.delta_t
+            self.motor_l_theta += self.motor_l_omega*self.delta_t
+            self.rope_len = self.neutral_rope_length + self.motor_l_theta * self.motor_l_radius
 
     
 
@@ -460,7 +483,7 @@ class ar_model(object):
         self.end_pos_x_l.append(self.spring_l_end_point[0])
         self.end_pos_y_l.append(self.spring_l_end_point[1])
         self.time_l.append(self.time)
-
+        
         damping = 0.3
 
        
@@ -486,8 +509,11 @@ class ar_model(object):
             '''
             Description: This version introduces the two arms, but with no springs attached
             '''
-            
-
+            plane_drag_force = self.plane_vel[1]**2
+            if self.plane_vel[1] > 0: #If positive velocity we need a negative drag force
+                plane_drag_force = -plane_drag_force
+            print("Plane vel, drag force", self.plane_vel[1], plane_drag_force)
+            self.left_motor(plane_hooked)
             #right_rope_anchor = np.array([start_right_rope_anchor[0]-start_position_vector_right_arm[0]+position_vector_right_arm[0],\
             #start_right_rope_anchor[1]-start_position_vector_right_arm[1]+position_vector_right_arm[1],\
             #start_right_rope_anchor[2]-start_position_vector_right_arm[2]+position_vector_right_arm[2]])
@@ -520,11 +546,11 @@ class ar_model(object):
             f_rope_l = model.connect_rope(self.rope_len, self.rope_k, hook_point, left_rope_anchor)
             f_rope_r = model.connect_rope(self.rope_len, self.rope_k, hook_point, right_rope_anchor)
             f_spring_system = f_rope_l + f_rope_r
-            f_damping = -f_spring_system*0.1
-            f_spring_system += f_damping
+            #f_damping = -f_spring_system*0.1
+            #f_spring_system += f_damping
             position_vector_right_arm = self.right_arm_kin(np.negative(f_rope_r), position_vector_right_arm)
             position_vector_left_arm = self.left_arm_kin(np.negative(f_rope_l), position_vector_left_arm)
-
+            #print("SPring force", f_spring_system)
             if self.cr_verbose:
                 print("Force from the two ropes", f_spring_system)
                 print("Force from left rope", f_rope_l)
@@ -532,6 +558,7 @@ class ar_model(object):
             #f_spring_system = f_rope_l + f_rope_r
             #The dynamics of the plane
             if plane_hooked:
+                f_spring_system[1] += plane_drag_force
                 self.plane_acc = f_spring_system / self.plane_mass
             if self.plane_verbose:
                 print("Plane acc", self.plane_acc)
@@ -569,7 +596,7 @@ class ar_model(object):
             #print("Righ rope", right_rope)
             left_arm = [[start_left_rope_anchor[0]-vlas_x, start_left_rope_anchor[1]-vlas_y], [left_rope_anchor[0], left_rope_anchor[1]]]
             right_arm = [[start_right_rope_anchor[0]-vras_x, start_right_rope_anchor[1]-vras_y], [right_rope_anchor[0], right_rope_anchor[1]]]
-            extra_vec = [right_rope_anchor[0], right_rope_anchor[1], f_spring_system[0], f_spring_system[1]]#extra_vec = [right_rope_anchor[0], right_rope_anchor[1], f_rope_r[0], f_rope_r[1]]
+            extra_vec = [right_rope_anchor[0], right_rope_anchor[1], self.rope_len, 0]#extra_vec = [right_rope_anchor[0], right_rope_anchor[1], f_rope_r[0], f_rope_r[1]]
             plot.update_plot(plane_plot, [0, 0], [0, 0], left_rope, right_rope, left_arm, right_arm, extra_vec) #Plane[ x, y, x vel, y vel], [0, 0], [0, 0], left_rope[armx, army, planex, planey], 
             #right_rope[armx, army, planex, planey], left_arm[centerx, centery, endpointx, endpointy], right_arm[centerx, centery, endpointx, endpointy]
             time.sleep(0.01)
