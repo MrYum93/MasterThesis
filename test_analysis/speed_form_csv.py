@@ -37,42 +37,40 @@ YYYY-MM-DD
 '''
 
 
-# imports
+import cv2
 import numpy as np
-from pylab import ion
-# import matplotlib
-# matplotlib.use('Qt4Agg')
-from matplotlib.pyplot import figure, clf, axis, plot, draw, show, pause, subplots
-import matplotlib.pyplot as plt
-import sys
-import time
+import csv
+from os import listdir
+from os.path import isfile, join
 
-# defines
-EPS = sys.float_info.epsilon
+class CSV_to_speed(object):
+    def __init__(self):
+        self.csv_folder_path = '../data/test2/'
+        # Following line lists all files in the folder you look for
+        self.csv_files = [f for f in listdir(self.csv_folder_path) if isfile(join(self.csv_folder_path, f))]
 
-# msg ids
+    def run(self):
+        '''
+        in CSV files the useful cells are
+        2:5 Which is the rotation in x,y,z,w Quaternians
+        6:9 which are the position in x,y,z with ?? being forward, ?? being upwards and ?? being left
 
-# topics
+        Row 8+ is data rest is header
+        :return:
+        '''
+        path = self.csv_folder_path + self.csv_files[0]
+        print('path', path)
+        with open(path) as csv_file:
+            csv_reader = csv.reader(csv_file, delimiter=',')
+            line_count = 0
+            for row in csv_reader:
+                line_count += 1
+                if line_count >= 8:
+                    print('{:>3}'.format(line_count), row[6:9])
+                if line_count >= 18:
+                    break
 
-# messages
 
-class PlotRPY(object):
-    def __init__(self, time, yaw):
-        # self.fig = figure(num=None, figsize=(6,6), dpi=80, facecolor='w', edgecolor='k')
-        self.fig, self.ax = plt.subplots()
-        # ion()
-        # plt.show(block=False)
-
-    def update_plot(self, time_, yaw, pitch, roll):
-        # clf()
-        # yaw = int(yaw)
-        axis([time_[0], time_[-1], -180, 180])
-
-        # self.fig.canvas.draw()
-        self.fig.canvas.flush_events()
-
-        plot(time_, yaw, '-')
-        plot(time_, pitch, '-')
-        plot(time_, roll, '-')
-
-        pause(0.00001)
+if __name__ == "__main__":
+    reader = CSV_to_speed()
+    reader.run()
