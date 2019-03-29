@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # /***************************************************************************
-# RoVi1 scrip for all exersice Robotcs part
 # Copyright (c) 2018, Mathias W. Madsen <matam14@student.sdu.dk> <mwittenm@gmail.com>
+#                     Mark Buch         <mabuc13@student.sdu.dk>
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
