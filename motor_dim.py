@@ -35,8 +35,6 @@ def pre_compute_spiral():
         radius_list.append(r)
         l += math.sqrt(r**2+((r-last_r)/delta_theta)**2)*delta_theta
         radius_list.append(r)
-        #if r % distance_windings == 0:
-        #print("r, l", r, l, theta)
         length_list.append(l)
         last_r = r
 
@@ -137,6 +135,8 @@ fw_position = 0.0
 fw_position = -17
 >>>>>>> e2821b4043c4d88a7ed3e5759251bf80b188d9ea
 
+
+
 #Now lets step through the process with small time steps
 
 delta_t = 0.001
@@ -169,7 +169,7 @@ plt.plot(time_list, speed_list, 'ro')
 =======
 time = -1
 pre_compute_spiral()
-torque = 0
+torque = 1
 while(fw_speed > 0):
 
     fw_position += fw_speed*delta_t
@@ -177,7 +177,9 @@ while(fw_speed > 0):
     if time >= 0:
         motor_radius = fw_x_to_motor_r(fw_position)
         #motor_radius = motor_diameter/2
-        torque = braking_force_one_motor*motor_radius
+        braking_force_one_motor = torque/motor_radius
+        print("Braking force", braking_force_one_motor)
+        #torque = braking_force_one_motor*motor_radius
         delta_momentum = (braking_force_one_motor*delta_t)*2
         fw_momentum -= delta_momentum
         fw_speed = fw_momentum/fw_mass
