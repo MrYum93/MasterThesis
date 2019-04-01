@@ -40,22 +40,100 @@ YYYY-MM-DD
 import time
 import RPi.GPIO as GPIO
 
+#DEFINE
+PHASE_A = 16
+PHASE_B = 19
+PHASE_Z = 13
 
 class ReadEncoder:
     def __init__(self):
         GPIO.setmode(GPIO.BCM)
         GPIO.setwarnings(False)
-        GPIO.setup(18, GPIO.OUT)
-        pass
+        GPIO.setup(PHASE_A, GPIO.IN, pull_up_down=GPIO.PUD_UP)  # setting a pull down resistor
+        GPIO.setup(PHASE_B, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+        GPIO.setup(PHASE_Z, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+        GPIO.setup(20, GPIO.OUT)
+        GPIO.add_event_detect(PHASE_A, GPIO.BOTH, callback=self.a_call)  # add rising edge detection on a channel
+        GPIO.add_event_detect(PHASE_B, GPIO.BOTH, callback=self.b_call)
+        GPIO.add_event_detect(PHASE_Z, GPIO.BOTH, callback=self.z_call)  # add rising edge d$
+        #GPIO.add_event_detect(PHASE_A, GPIO.FALLING, callback=self.a_falling_call)  # add rising edge d$
+        #GPIO.add_event_detect(PHASE_B, GPIO.FALLING, callback=self.b_falling_call)
+        #GPIO.add_event_detect(PHASE_Z, GPIO.FALLING, callback=self.z_falling_call)
+        self.tics = 0
+        self.diff_tics = 0
+        self.seq = 0
+        self.old_seq = 0
+        self.rotations = 0
+        self.a_h = False
+        self.b_h = False
+        self.z_h = False
+        self.t_old = 0
+        
+
+    def a_call(self, channel):
+        if GPIO.input(PHASE_A):   
+            print "Rising edge detected on A"
+            self.a_h = True  
+        else:                    
+            print "Falling edge detected on A"          
+            self.a_h = False
+
+    def b_call(self, channel):
+        if GPIO.input(PHASE_B):  
+            print "Rising edge detected on B" 
+            self.b_h = True
+        else:                   
+            print "Falling edge detected on B"
+            self.b_h = False
+
+    def z_call(self, channel):
+        if GPIO.input(PHASE_Z):  
+            print "Rising edge detected on Z" 
+            self.z_h = True
+        else:                   
+            print "Falling edge detected on Z"
+            self.z_h = False
+	    self.rotations += self.diff_tics
+
+    def a_rising_call(self, channel):
+        print('phase a rising')
+        self.a_h = True
+
+    def b_rising_call(self, channel):
+        print('phase b rising')
+        self.b_h = True
+
+    def z_rising_call(self, channel):
+        print('phase z rising')
+        self.z_h = True
+
 
     def read(self):
-        print("LED on")
-        GPIO.output(18, GPIO.HIGH)
-        time.sleep(1)
-        print("LED off")
-        GPIO.output(18, GPIO.LOW)
+        while(True):
+	    t_now = time.time()
+            #print('time', t_now - self.t_old)
+            self.seq = (self.a_h ^ self.b_h) | self.b_h << 1  # xor & or
+            delta = (self.seq - self.old_seq) % 4
+            if delta is 0:
+                self.tics = self.tics
+            elif delta is 1:
+                self.tics += 1
+                self.diff_tics = 1
+            elif delta is 2:
+                self.tics += self.diff_tics*2
+            elif delta is 3:
+                self.tics -= 1
+                self.diff_tics = -1
+            self.old_seq = self.seq
+
+	    #print('z_h', self.z_h)
+            print('rotations:', self.rotations)
+            print('tics:', self.tics / 4)
+            #if self.a_h is True and 
+            self.t_old = t_now
+            
 
 
 if __name__ == "__main__":
     read = ReadEncoder()
-
+    read.read()
