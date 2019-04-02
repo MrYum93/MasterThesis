@@ -114,7 +114,8 @@ class ReadEncoder:
             #print('time', t_now - self.t_old)
             self.seq = (self.a_h ^ self.b_h) | self.b_h << 1  # xor & or
             delta = (self.seq - self.old_seq) % 4
-            if delta is 0:
+            #print("delta", delta)
+	    if delta is 0:
                 self.tics = self.tics
             elif delta is 1:
                 self.tics += 1
@@ -126,8 +127,8 @@ class ReadEncoder:
                 self.diff_tics = -1
             self.old_seq = self.seq
 
-	    #print('z_h', self.z_h)
-            print('rotations:', self.rotations)
+	    #print('a_h', self.a_h)
+            #print('rotations:', self.rotations)
             print('tics:', self.tics / 4)
             #if self.a_h is True and 
             self.t_old = t_now
