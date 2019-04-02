@@ -39,6 +39,7 @@ YYYY-MM-DD
 #IMPORTS
 import time
 import RPi.GPIO as GPIO
+import datetime
 
 #DEFINE
 PHASE_A = 16
@@ -68,7 +69,8 @@ class ReadEncoder:
         self.b_h = False
         self.z_h = False
         self.t_old = 0
-        
+        self.file = open("/home/pi/stepper_encoder_test/encoder_data.txt", "w")
+	self.file.write("time, tics")
 
     def a_call(self, channel):
         if GPIO.input(PHASE_A):   
@@ -110,7 +112,8 @@ class ReadEncoder:
 
     def read(self):
         while(True):
-	    t_now = time.time()
+	    t = str(datetime.datetime.now().time())
+	    hours, min, sec = t.split(':')
             #print('time', t_now - self.t_old)
             self.seq = (self.a_h ^ self.b_h) | self.b_h << 1  # xor & or
             delta = (self.seq - self.old_seq) % 4
@@ -130,9 +133,11 @@ class ReadEncoder:
 	    #print('a_h', self.a_h)
             #print('rotations:', self.rotations)
             print('tics:', self.tics / 4)
+	    to_write = sec + ', ' +  str(self.tics/4) + '\n'
+	    self.file.write(to_write)
             #if self.a_h is True and 
-            self.t_old = t_now
-            
+            #self.t_old = t_now
+        self.file.close()
 
 
 if __name__ == "__main__":
