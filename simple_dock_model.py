@@ -26,6 +26,7 @@ TO_DEG = 180 / math.pi
 # We're using SI units
 class ar_model(object):
     def __init__(self):
+        self.interactive = False
         self.plane_verbose = False
         self.cr_verbose = False
         self.right_arm_verbose = False
@@ -90,7 +91,7 @@ class ar_model(object):
 
 
         #Both arm kinematics
-        self.arm_dampening = 0.9
+        #self.arm_dampening = 0.9
         self.torsion_K = 470
         #Right arm kinematics
         self.omega_right = 0
@@ -99,12 +100,16 @@ class ar_model(object):
         self.right_arm_position_y_l = []
         self.right_rope_anchor_list = []#self.right_rope_anchor_l = np.empty([3, 1], dtype=float)
         self.right_rope_anchor_y = []
-
+        
         #Left arm kinematis
         self.omega_left = 0
         self.theta_left = 0
         self.left_arm_position_x_l = []
         self.left_arm_position_y_l = []
+        self.left_arm_theta_list = []
+
+        #Left rope
+        self.left_rope_theta_list = []
 
         #Left motor
         self.motor_l_theta = 0
@@ -219,6 +224,29 @@ class ar_model(object):
         plt.ylabel('Plane y pos', fontsize=16)
 
         plt.show()
+    
+    def plot_thetas(self):
+        #This methods plots the left thetas in function of time
+        
+        #We need to make the rope theta consitent, therefore if the angle is negative we need to adjust it
+        counter = 0
+        '''for theta in self.left_rope_theta_list:
+            if theta < 0:
+                new_theta = math.pi + (math.pi+theta)
+                self.left_rope_theta_list[counter] = new_theta #Adjustment equation
+            #Lets also get the value down to approx zero by subtracting pi
+            #self.left_rope_theta_list[counter] -= math.pi
+            counter += 1
+        '''
+        fig = plt.figure
+        plt.plot(self.time_l[1:], self.left_rope_theta_list, label="Rope theta")
+        plt.plot(self.time_l[1:], self.left_arm_theta_list, "r--", label="Arm theta")
+        title = "The two thetas of the left side"
+        plt.ylabel('Thetha [rad]')
+        plt.xlabel("Time [seconds]")
+        plt.legend()
+        plt.show()
+        #print(self.refined_time)
 
     def plot_right_arm(self):
         #print(self.right_arm_position_l)
@@ -580,6 +608,18 @@ class ar_model(object):
             self.motor_force = 0
             self.motor_l_alpha = 0
             self.motor_l_omega = 0   
+        
+        #PID loop for the motor:
+        '''run(speed):
+            error = speed - self.motor_l_omega 
+
+            P = 0.5 * error
+            delta_error = last_error - error
+            D = 0.001 * delta_error/self.delta_t
+         '''   
+            
+
+
         #print("Motor force", self.motor_force)
 
         #print("Motor phase", self.motor_phase, self.plane_vel)
@@ -635,7 +675,8 @@ class ar_model(object):
         self.theta_right = math.atan2(start_position_vector_right_arm[1], start_position_vector_right_arm[0])
         self.theta_left = math.atan2(start_position_vector_left_arm[1], start_position_vector_left_arm[0])
         #Interactive plot
-        plot = PlotSystem(-5, 5, -5, 5)
+        if self.interactive:
+            plot = PlotSystem(-5, 5, -5, 5)
         while self.time < 1:
             '''
             Description: This version introduces the two arms, but with no springs attached
@@ -645,7 +686,11 @@ class ar_model(object):
                 plane_drag_force = -plane_drag_force
             #print("Plane vel, drag force", self.plane_vel[1], plane_drag_force)
             rope_before = self.rope_len
-            self.left_motor(plane_hooked)
+            
+            #MOTOR call
+            #self.left_motor(plane_hooked)
+            
+            
             rope_after = self.rope_len
             self.rope_speed = (rope_after - rope_before)/self.delta_t
             #right_rope_anchor = np.array([start_right_rope_anchor[0]-start_position_vector_right_arm[0]+position_vector_right_arm[0],\
@@ -680,6 +725,11 @@ class ar_model(object):
             
             f_rope_l = model.connect_rope(self.rope_len, self.rope_k, hook_point, left_rope_anchor)
             f_rope_r = model.connect_rope(self.rope_len, self.rope_k, hook_point, right_rope_anchor)
+            self.left_arm_theta_list.append(self.theta_left)
+            if not plane_hooked:
+                self.left_rope_theta_list.append(math.atan2(0, 1))
+            else:
+                self.left_rope_theta_list.append(math.atan2(self.plane_pos[1]-lra_y, self.plane_pos[0]-lra_x))
             f_spring_system = f_rope_l + f_rope_r
             #f_damping = -f_spring_system*0.1
             #f_spring_system += f_damping
@@ -732,23 +782,23 @@ class ar_model(object):
             
             #Moving thrugh time with small steps
             self.time += self.delta_t
-
-            plane_plot = [self.plane_pos[0], self.plane_pos[1], self.plane_vel[0], self.plane_vel[1]]
-            left_rope = [[left_rope_anchor[0], left_rope_anchor[1]], [self.plane_pos[0], hook_point[1]]]
-            #print("Left rope", left_rope)
-            right_rope = [[right_rope_anchor[0], right_rope_anchor[1]], [self.plane_pos[0], hook_point[1]]]
-            #print("Righ rope", right_rope)
-            left_arm = [[start_left_rope_anchor[0]-vlas_x, start_left_rope_anchor[1]-vlas_y], [left_rope_anchor[0], left_rope_anchor[1]]]
-            right_arm = [[start_right_rope_anchor[0]-vras_x, start_right_rope_anchor[1]-vras_y], [right_rope_anchor[0], right_rope_anchor[1]]]
-            extra_vec = [right_rope_anchor[0], right_rope_anchor[1], self.rope_len, 0]#extra_vec = [right_rope_anchor[0], right_rope_anchor[1], f_rope_r[0], f_rope_r[1]]
-            plot.update_plot(plane_plot, [0, 0], [0, 0], left_rope, right_rope, left_arm, right_arm, extra_vec) #Plane[ x, y, x vel, y vel], [0, 0], [0, 0], left_rope[armx, army, planex, planey], 
-            #right_rope[armx, army, planex, planey], left_arm[centerx, centery, endpointx, endpointy], right_arm[centerx, centery, endpointx, endpointy]
-            time.sleep(0.01)
+            if self.interactive:
+                plane_plot = [self.plane_pos[0], self.plane_pos[1], self.plane_vel[0], self.plane_vel[1]]
+                left_rope = [[left_rope_anchor[0], left_rope_anchor[1]], [self.plane_pos[0], hook_point[1]]]
+                #print("Left rope", left_rope)
+                right_rope = [[right_rope_anchor[0], right_rope_anchor[1]], [self.plane_pos[0], hook_point[1]]]
+                #print("Righ rope", right_rope)
+                left_arm = [[start_left_rope_anchor[0]-vlas_x, start_left_rope_anchor[1]-vlas_y], [left_rope_anchor[0], left_rope_anchor[1]]]
+                right_arm = [[start_right_rope_anchor[0]-vras_x, start_right_rope_anchor[1]-vras_y], [right_rope_anchor[0], right_rope_anchor[1]]]
+                extra_vec = [right_rope_anchor[0], right_rope_anchor[1], self.rope_len, 0]#extra_vec = [right_rope_anchor[0], right_rope_anchor[1], f_rope_r[0], f_rope_r[1]]
+                plot.update_plot(plane_plot, [0, 0], [0, 0], left_rope, right_rope, left_arm, right_arm, extra_vec) #Plane[ x, y, x vel, y vel], [0, 0], [0, 0], left_rope[armx, army, planex, planey], 
+                #right_rope[armx, army, planex, planey], left_arm[centerx, centery, endpointx, endpointy], right_arm[centerx, centery, endpointx, endpointy]
+                time.sleep(0.001)
 
         
             
-
-        self.plot_motor()
+        self.plot_thetas()
+        #self.plot_motor()
         #self.plot_right_arm()
         #self.plot_plane()
 
