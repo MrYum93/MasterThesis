@@ -6,7 +6,7 @@ https://github.com/WiringPi/WiringPi/blob/master/examples/isr.c
 
 Compile as follows:
 
-    gcc -o isr4pi isr4pi.c -lwiringPi
+    gcc -o isr4pi isr4pi.c -lwiringPi -lrt
 
 Run as follows:
 
@@ -18,12 +18,15 @@ Run as follows:
 #include <errno.h>
 #include <stdlib.h>
 #include <wiringPi.h>
+#include <time.h>
 
 
 // Use physical GPIO Pin 36, 35 and 33, which is Pin 27, 24 and 23 for wiringPi library
 #define PIN_A 27
 #define PIN_B 24
 #define PIN_Z 23
+#define BILLION 1000000000L
+
 
 
 // the phases high=1, low=0
@@ -37,6 +40,10 @@ volatile char rev_flag = 0;
 volatile signed int dir = 0;  // either 1 [CW] or -1 [CCW]
 volatile signed long int tics = 0;
 
+struct timespec {
+        time_t   tv_sec;        /* seconds */
+        long     tv_nsec;       /* nanoseconds */
+};
 
 // -------------------------------------------------------------------------
 // myInterrupt:  called every time an event occurs
@@ -83,6 +90,19 @@ int main(void) {
     fprintf (stderr, "Unable to setup ISR: %s\n", strerror (errno));
     return 1;
   }
+  
+  FILE *f = fopen("data/file.txt", "w");
+  if (f == NULL)
+  {
+    printf("Error opening file!\n");
+    exit(1);
+  }
+  
+  /* print header to file */
+  const char *header = "time,tics,rev";
+  fprintf(f, "%s\n", header);
+  
+  struct timespec time_now;
 
   while ( 1 ) {
     seq = (A ^ B) | B << 1;  // get sequence according to documentation in drive
@@ -117,12 +137,23 @@ int main(void) {
       rev_flag = 0;
     }
     
+    clock_gettime(CLOCK_MONOTONIC, &time_now)
+    t = BILLION * time_now.tv_sec + time_now.tv_nsec;
+    printf("time in EPOCH = %llu nanoseconds\n", (long long unsigned int) t);
+
+    
+    // print the tics and revolutions
+    fprintf(f, "%f,%f,%f\n", t, tics, revolutions);
+
+    
     printf( "%d\n", A );
     printf( "%d\n", B );
     printf( "%d\n", Z );
     eventCounter = 0;
     delay( 200 ); // wait 0.2 second
   }
+  
+  fclose(f);
 
   return 0;
 }
