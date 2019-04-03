@@ -20,10 +20,10 @@ Run as follows:
 #include <wiringPi.h>
 
 
-// Use GPIO Pin 17, which is Pin 0 for wiringPi library
-#define PIN_A 0
-#define PIN_B 1
-#define PIN_Z 2
+// Use physical GPIO Pin 36, 35 and 33, which is Pin 27, 24 and 23 for wiringPi library
+#define PIN_A 27
+#define PIN_B 24
+#define PIN_Z 23
 
 
 // the phases high=1, low=0
