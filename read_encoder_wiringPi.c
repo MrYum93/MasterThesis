@@ -6,7 +6,7 @@ https://github.com/WiringPi/WiringPi/blob/master/examples/isr.c
 
 Compile as follows:
 
-    gcc -o read_encoder read_encoder_wiringPi.c -lwiringPi -lrt
+    gcc -o read_encoder read_encoder_wiringPi.c -lwiringPi -lrt -lm
 
 Run as follows:
 
@@ -19,13 +19,13 @@ Run as follows:
 #include <stdlib.h>
 #include <wiringPi.h>
 #include <time.h>
-
+#include <math.h>
 
 // Use physical GPIO Pin 36, 35 and 33, which is Pin 27, 24 and 23 for wiringPi library
 #define PIN_A 27
 #define PIN_B 24
 #define PIN_Z 23
-#define MILLION 1000000L
+#define BILLION 1000000000L
 
 
 // the phases high=1, low=0
@@ -39,7 +39,8 @@ volatile int revolutions = 0;
 volatile char rev_flag = 0;
 volatile signed int dir = 0;  // either 1 [CW] or -1 [CCW]
 volatile signed long int tics = 0;
-volatile long long unsigned int t = 0;
+volatile long ms = 0;
+volatile long unsigned int t = 0;
 
 //struct timespec {
 //        time_t   tv_sec;        /* seconds */
@@ -141,8 +142,9 @@ int main(void) {
     }
     
     clock_gettime(CLOCK_MONOTONIC, &time_now);
-    t = MILLION * time_now.tv_sec + time_now.tv_nsec;
-    printf("time in EPOCH = %llu nanoseconds\n", (long long unsigned int) t);
+    ms = round(time_now.tv_nsec / 1000000);
+    t = 1000 * time_now.tv_sec + ms;//time_now.tv_nsec;
+    //printf("time in EPOCH = %lu nanoseconds\n", (long unsigned int) t);
 
     
     // print the tics and revolutions
