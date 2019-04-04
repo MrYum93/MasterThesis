@@ -6,7 +6,7 @@ https://github.com/WiringPi/WiringPi/blob/master/examples/isr.c
 
 Compile as follows:
 
-    gcc -o isr4pi isr4pi.c -lwiringPi -lrt
+    gcc -o read_encoder read_encoder_wiringPi.c -lwiringPi -lrt
 
 Run as follows:
 
@@ -35,15 +35,18 @@ volatile int B = 0;
 volatile int Z = 0;
 volatile int seq = 0;
 volatile int old_seq = 0;
+volatile int delta = 0;
 volatile int revolutions = 0;
 volatile char rev_flag = 0;
 volatile signed int dir = 0;  // either 1 [CW] or -1 [CCW]
 volatile signed long int tics = 0;
+volatile long long unsigned int t = 0;
 
-struct timespec {
-        time_t   tv_sec;        /* seconds */
-        long     tv_nsec;       /* nanoseconds */
-};
+//struct timespec {
+//        time_t   tv_sec;        /* seconds */
+//        long     tv_nsec;       /* nanoseconds */
+//};
+
 
 // -------------------------------------------------------------------------
 // myInterrupt:  called every time an event occurs
@@ -91,10 +94,10 @@ int main(void) {
     return 1;
   }
   
-  FILE *f = fopen("data/file.txt", "w");
+  FILE *f = fopen("data/encoder_reads.txt", "w");
   if (f == NULL)
   {
-    printf("Error opening file!\n");
+    printf("Error opening txt file!\n");
     exit(1);
   }
   
@@ -110,6 +113,7 @@ int main(void) {
     if (delta == 0){
       //No change
       tics = tics;
+    }
     else if (delta == 1){
       //CW
       tics += 1;
@@ -117,7 +121,7 @@ int main(void) {
     }
     else if (delta == 2){
       //skipped a single read so assume it goes same dir as previously two times
-      tics += self.diff_tics*2;
+      tics += dir*2;
     }
     else if (delta == 3){
       //CCW
@@ -137,20 +141,20 @@ int main(void) {
       rev_flag = 0;
     }
     
-    clock_gettime(CLOCK_MONOTONIC, &time_now)
+    clock_gettime(CLOCK_MONOTONIC, &time_now);
     t = BILLION * time_now.tv_sec + time_now.tv_nsec;
-    printf("time in EPOCH = %llu nanoseconds\n", (long long unsigned int) t);
+    //printf("time in EPOCH = %llu nanoseconds\n", (long long unsigned int) t);
 
     
     // print the tics and revolutions
     fprintf(f, "%f,%f,%f\n", t, tics, revolutions);
 
     
-    printf( "%d\n", A );
+   /* printf( "%d\n", A );
     printf( "%d\n", B );
-    printf( "%d\n", Z );
-    eventCounter = 0;
-    delay( 200 ); // wait 0.2 second
+    printf( "%d\n", Z );*/
+    printf("tics: %d\n", tics);
+    //delay( 200 ); // wait 0.2 second
   }
   
   fclose(f);

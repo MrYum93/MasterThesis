@@ -44,7 +44,7 @@ import matplotlib.pyplot as plt
 
 class SpeedOfMotor():
     def __init__(self):
-        self.encoder_stepper = pd.read_csv("../data_for_git/encoder_data.txt")
+        self.encoder_stepper = pd.read_csv("../data/encoder_reads.txt")
         self.total_tics = 1024
         self.tick_deg = 360/1024
 
@@ -53,7 +53,7 @@ class SpeedOfMotor():
         # index = self.encoder_stepper.columns
         # print(index)
         time = self.encoder_stepper['time']
-        tics = self.encoder_stepper[' tics']
+        tics = self.encoder_stepper['tics']
         speed_l = []
         time_l = []
         for i in range(int((len(time)-1))):
