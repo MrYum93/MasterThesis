@@ -28,11 +28,10 @@ Run as follows:
 #define BILLION 1000000000L
 
 
-
 // the phases high=1, low=0
 volatile int A = 0;
 volatile int B = 0;
-volatile int Z = 0;
+volatile int Z = 1; // is always hihg unless it is at home pos
 volatile int seq = 0;
 volatile int old_seq = 0;
 volatile int delta = 0;
@@ -94,7 +93,7 @@ int main(void) {
     return 1;
   }
   
-  FILE *f = fopen("data/encoder_reads.txt", "w");
+  FILE *f = fopen("data_for_git/encoder_data.txt", "w");
   if (f == NULL)
   {
     printf("Error opening txt file!\n");
@@ -147,7 +146,7 @@ int main(void) {
 
     
     // print the tics and revolutions
-    fprintf(f, "%f,%f,%f\n", t, tics, revolutions);
+    fprintf(f, "%d,%d,%d\n", t, tics, revolutions);
 
     
    /* printf( "%d\n", A );
