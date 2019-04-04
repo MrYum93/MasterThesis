@@ -53,7 +53,7 @@ class ar_model(object):
 
         self.neutral_rope_length = 1
         self.rope_len = 1
-        self.rope_k = 200
+        self.rope_k = 2000
 
         self.plane_mass = 0.7
         self.plane_pos = np.array([0, -0.1, 0]) #The plane starts one meter before the docking station before it is hooked
@@ -90,23 +90,43 @@ class ar_model(object):
         self.e_loss = 10  # percent. Might not be usaable
 
 
+        #From init model
+        self.plane_hooked = False
+        self.f_spring_system = np.array([0.0, 0.0, 0.0])
+        self.start_position_vector_right_arm = np.array([-0.4, 0.0, 0.0])
+        self.vras_x = -0.4
+        self.vras_y = 0.0
+        self.vlas_x = 0.4
+        self.vlas_y = 0.0
+        self.start_position_vector_left_arm = np.array(([self.vlas_x, self.vlas_y, 0.0]))
+        self.position_vector_right_arm = self.start_position_vector_right_arm
+        self.position_vector_left_arm = self.start_position_vector_left_arm
+        self.hook_point = np.array([0.0, -0.0, 0.0]) #As the plane are one meter below the hook point (seen in the y direction)
+        self.start_left_rope_anchor = np.array([-1.0, -0.0, 0.0]) 
+        self.start_right_rope_anchor = np.array([1.0, -0.0, 0.0]) 
         #Both arm kinematics
         #self.arm_dampening = 0.9
         self.torsion_K = 470
         #Right arm kinematics
+        self.eqi_angle_right = math.pi
         self.omega_right = 0
         self.theta_right = 0
         self.right_arm_position_x_l = []
         self.right_arm_position_y_l = []
         self.right_rope_anchor_list = []#self.right_rope_anchor_l = np.empty([3, 1], dtype=float)
         self.right_rope_anchor_y = []
-        
+
+
         #Left arm kinematis
         self.omega_left = 0
         self.theta_left = 0
         self.left_arm_position_x_l = []
         self.left_arm_position_y_l = []
         self.left_arm_theta_list = []
+        self.eqi_angle_left = 0
+
+        #Both arms
+        self.arm_length = 0.4
 
         #Left rope
         self.left_rope_theta_list = []
@@ -420,10 +440,10 @@ class ar_model(object):
         
         '''
         inertia_arm = 0.006
-        L = 0.4 #The length of the arm
+        #The length of the arm
         
-        eqi_angle = math.pi #Equilibrim angle of the torsion spring this angle is 135 degrees from the x axis cw
-        spring_torque = (eqi_angle-self.theta_right)*self.torsion_K
+         #Equilibrim angle of the torsion spring this angle is 135 degrees from the x axis cw
+        spring_torque = (self.eqi_angle_right-self.theta_right)*self.torsion_K
         lever_torque = np.cross(position_vector, force_vector)
         #print("RIGHT Lever torque", lever_torque[2])
         #print("RIGHT Spring Torque", spring_torque)
@@ -439,8 +459,8 @@ class ar_model(object):
         self.omega_right += acceleration*self.delta_t
         self.theta_right += self.omega_right*self.delta_t
         
-        position_vector[0] = L*math.cos(self.theta_right)
-        position_vector[1] = L*math.sin(self.theta_right)
+        position_vector[0] = self.arm_length*math.cos(self.theta_right)
+        position_vector[1] = self.arm_length*math.sin(self.theta_right)
         if self.right_arm_verbose:
             print("Omega right", self.omega_right)
             print("Theta right", self.theta_right)
@@ -472,10 +492,10 @@ class ar_model(object):
 
         '''
         inertia_arm = 0.006
-        L = 0.4 #The length of the arm
+        #L = 0.4 #The length of the arm
         self.torsion_K = 3 #The spring constant of the torsion spring
-        eqi_angle = 0 #Equilibrim angle of the torsion spring this angle is 45 degrees from the x axis cw
-        spring_torque = (eqi_angle-self.theta_left)*self.torsion_K
+         #Equilibrim angle of the torsion spring this angle is 45 degrees from the x axis cw
+        spring_torque = (self.eqi_angle_left-self.theta_left)*self.torsion_K
         lever_torque = np.cross(position_vector, force_vector)
         total_torque = spring_torque + lever_torque[2]
         acceleration = total_torque/inertia_arm
@@ -490,8 +510,8 @@ class ar_model(object):
         #This acceleration moves the arm
         self.omega_left += acceleration*self.delta_t
         self.theta_left += self.omega_left*self.delta_t
-        position_vector[0] = L*math.cos(self.theta_left)
-        position_vector[1] = L*math.sin(self.theta_left)
+        position_vector[0] = self.arm_length*math.cos(self.theta_left)
+        position_vector[1] = self.arm_length*math.sin(self.theta_left)
         if self.right_arm_verbose:
             print("Omega left", self.omega_left)
             print("Theta left", self.theta_left)
@@ -499,6 +519,7 @@ class ar_model(object):
             #print("Acceleration of arm", alpha_vec)
         self.left_arm_position_x_l.append(position_vector[0])
         self.left_arm_position_y_l.append(position_vector[1])
+        #print("Left arm position", position_vector)
         #M = 0.200 #0.2 kg seems fair for a wooden beam as an arm
         #This vector should then move the arm, so r have to be changed, but for starters, lets just try to print how the acceleration is when the arm is moved.
         return position_vector
@@ -568,8 +589,8 @@ class ar_model(object):
             
             #print("Motor_l_theta", self.motor_l_theta)
             if self.rope_speed - math.sqrt(self.half_distane_poles**2+self.plane_vel[1]**2) > -0.1 and self.rope_speed - math.sqrt(self.half_distane_poles**2+self.plane_vel[1]**2) < 0.1:  # 1 - 1.1 = -0.1 : 1.1 - 1 = 0.1
-                print("Target speed acquired")
-                self.motor_phase = 1
+                print("Target speed acquired", self.plane_vel[1])
+                self.motor_phase = 2
         if self.motor_phase == 2:
             #In this phase the motor should de accelerate the plane and therefore add force to the two ropes        
             self.motor_l_alpha = -self.motor_max_alpha
@@ -655,11 +676,7 @@ class ar_model(object):
                 #Vi har en fixed wing speed, hvilken hastighed skal motoren have for at følge flyet
             #PHASE 2
             #The motor uses its torque to de accelerate the load to a halt
-
-    
-
-    def main(self):
-        damping = 0.001
+    def init_model(self):
 
         # Append twice to get descrete acceleration
         self.plane_k_e_l.append(self.plane_k_e)
@@ -674,25 +691,16 @@ class ar_model(object):
         self.end_pos_y_l.append(self.spring_l_end_point[1])
         self.time_l.append(self.time)
         self.append_motor_stuff()
-        damping = 0.3
+      
+        self.theta_right = math.atan2(self.start_position_vector_right_arm[1], self.start_position_vector_right_arm[0])
+        self.theta_left = math.atan2(self.start_position_vector_left_arm[1], self.start_position_vector_left_arm[0])
+    
+    
 
-       
-        cnt = 0
-        plane_hooked = False
-        f_spring_system = np.array([0.0, 0.0, 0.0])
-        start_position_vector_right_arm = np.array([-0.4, 0.0, 0.0]) #NEED a REFERENCE vector for its position in the coordinate system
-        vras_x = -0.4 #VectorRightArmStart
-        vras_y = 0.0
-        vlas_x = 0.4
-        vlas_y = 0.0
-        start_position_vector_left_arm = np.array(([vlas_x, vlas_y, 0.0]))
-        position_vector_right_arm = start_position_vector_right_arm
-        position_vector_left_arm = start_position_vector_left_arm
-        hook_point = np.array([0.0, -0.0, 0.0]) #As the plane are one meter below the hook point (seen in the y direction)
-        start_left_rope_anchor = np.array([-1.0, -0.0, 0.0]) 
-        start_right_rope_anchor = np.array([1.0, -0.0, 0.0]) 
-        self.theta_right = math.atan2(start_position_vector_right_arm[1], start_position_vector_right_arm[0])
-        self.theta_left = math.atan2(start_position_vector_left_arm[1], start_position_vector_left_arm[0])
+    def main(self):
+
+        damping = 0.001
+        self.init_model()
         #Interactive plot
         if self.interactive:
             plot = PlotSystem(-5, 5, -10, 10)
@@ -707,7 +715,7 @@ class ar_model(object):
             rope_before = self.rope_len
             
             #MOTOR call
-            self.left_motor(plane_hooked)
+            self.left_motor(self.plane_hooked)
             
             
             rope_after = self.rope_len
@@ -715,62 +723,65 @@ class ar_model(object):
             #right_rope_anchor = np.array([start_right_rope_anchor[0]-start_position_vector_right_arm[0]+position_vector_right_arm[0],\
             #start_right_rope_anchor[1]-start_position_vector_right_arm[1]+position_vector_right_arm[1],\
             #start_right_rope_anchor[2]-start_position_vector_right_arm[2]+position_vector_right_arm[2]])
-            rra_x = start_right_rope_anchor[0]-vras_x+ position_vector_right_arm[0]
-            rra_y = start_right_rope_anchor[1]-vras_y+ position_vector_right_arm[1]
+            rra_x = self.start_right_rope_anchor[0]-self.vras_x+ self.position_vector_right_arm[0]
+            rra_y = self.start_right_rope_anchor[1]-self.vras_y+ self.position_vector_right_arm[1]
             right_rope_anchor = np.array([rra_x, rra_y, 0.0])
             self.right_rope_anchor_list.append(right_rope_anchor)#np.append(self.right_rope_anchor_l, right_rope_anchor)
             
-            lra_x = start_left_rope_anchor[0]-vlas_x+ position_vector_left_arm[0]
-            lra_y = start_left_rope_anchor[1]-vlas_y+ position_vector_left_arm[1]
+            lra_x = self.start_left_rope_anchor[0]-self.vlas_x+ self.position_vector_left_arm[0]
+            lra_y = self.start_left_rope_anchor[1]-self.vlas_y+ self.position_vector_left_arm[1]
             left_rope_anchor = np.array([lra_x, lra_y, 0.0])
+            #print("Left_rope_anchor", left_rope_anchor)
             #print("Rope anchors r / l", right_rope_anchor, left_rope_anchor)
             #self.right_rope_anchor_x.append(right_rope_anchor[0])
             #self.right_rope_anchor_y.append(right_rope_anchor[1])
             #We have two ropes each going from their left anchor to the hooking point
             #These lines dont need to be in the while loop
-            if not plane_hooked:
-                start_sum_hook_points = np.add(start_right_rope_anchor, start_left_rope_anchor)
-                position_arm_diff = np.subtract(position_vector_left_arm, position_vector_right_arm)
-                hook_y = position_vector_left_arm[1]
+            if not self.plane_hooked:
+                start_sum_hook_points = np.add(self.start_right_rope_anchor, self.start_left_rope_anchor)
+                position_arm_diff = np.subtract(self.position_vector_left_arm, self.position_vector_right_arm)
+                hook_y = self.position_vector_left_arm[1]
                 #print("hok y", hook_y)
                 hook_point = np.array([0.0, 0, 0.0])
                 #print("position_arm_diff", position_arm_diff)
                 #print("Start_sum_hook_point", start_sum_hook_points)
                 #print("hook point", hook_point)
-        
-            if plane_hooked:
+          
+            if self.plane_hooked:
                 hook_point = self.plane_pos
                 #self.right_arm_position_l.append(position_vector_right_arm)
             
             f_rope_l = model.connect_rope(self.rope_len, self.rope_k, hook_point, left_rope_anchor)
+            #print("Rope", self.hook_point, left_rope_anchor)
             f_rope_r = model.connect_rope(self.rope_len, self.rope_k, hook_point, right_rope_anchor)
             self.left_arm_theta_list.append(self.theta_left)
-            if not plane_hooked:
+            if not self.plane_hooked:
                 self.left_rope_theta_list.append(math.atan2(0, 1))
             else:
                 self.left_rope_theta_list.append(math.atan2(self.plane_pos[1]-lra_y, self.plane_pos[0]-lra_x))
-            f_spring_system = f_rope_l + f_rope_r
+            self.f_spring_system = f_rope_l + f_rope_r
             #f_damping = -f_spring_system*0.1
             #f_spring_system += f_damping
-            position_vector_right_arm = self.right_arm_kin(np.negative(f_rope_r), position_vector_right_arm)
-            position_vector_left_arm = self.left_arm_kin(np.negative(f_rope_l), position_vector_left_arm)
+            #print("f_rope_r", f_rope_r)
+            self.position_vector_right_arm = self.right_arm_kin(np.negative(f_rope_r), self.position_vector_right_arm)
+            self.position_vector_left_arm = self.left_arm_kin(np.negative(f_rope_l), self.position_vector_left_arm)
             #print("SPring force", f_spring_system)
             if self.cr_verbose:
-                print("Force from the two ropes", f_spring_system)
+                print("Force from the two ropes", self.f_spring_system)
                 print("Force from left rope", f_rope_l)
                 print("Force from right rope", f_rope_r)
             #f_spring_system = f_rope_l + f_rope_r
             #The dynamics of the plane
-            if plane_hooked:
-                f_spring_system[1] += plane_drag_force
+            if self.plane_hooked:
+                self.f_spring_system[1] += plane_drag_force
                 #y_force = force_on_plane/self.plane_mass #Maybe move this to main
                 #braking_de_acc = np.array([0.0, y_acc, 0.0])
 
                 if self.motor_phase == 2:
                     force_on_plane = 2*(self.motor_force*math.sin(self.theta_left)) # We have two motors therefore multiplying by two
-                    f_spring_system[1] += force_on_plane
+                    self.f_spring_system[1] += force_on_plane
                     
-                self.plane_acc = f_spring_system / self.plane_mass
+                self.plane_acc = self.f_spring_system / self.plane_mass
                     
             if self.plane_verbose:
                 print("Plane acc", self.plane_acc)
@@ -779,8 +790,8 @@ class ar_model(object):
             self.plane_pos = self.plane_pos + self.plane_vel * self.delta_t
             
             #Check if the plane is hooked to the rope yet
-            if not plane_hooked and self.plane_pos[1] > hook_point[1]:
-                plane_hooked = True
+            if not self.plane_hooked and self.plane_pos[1] > hook_point[1]:
+                self.plane_hooked = True
             
             if self.plane_verbose:
                 print("plane pos", self.plane_pos)
@@ -790,7 +801,7 @@ class ar_model(object):
             self.plane_pos_l.append(self.plane_pos)
             self.plane_vel_l.append(self.plane_vel)
             self.plane_acc_l.append(self.plane_acc)
-            self.total_force_l.append(f_spring_system)
+            self.total_force_l.append(self.f_spring_system)
           #  self.all_purpose_l.append(np.linalg.norm(f_rope_l))
             self.end_pos_x_l.append(self.spring_l_end_point[0])
             self.end_pos_y_l.append(self.spring_l_end_point[1])
@@ -807,8 +818,8 @@ class ar_model(object):
                 #print("Left rope", left_rope)
                 right_rope = [[right_rope_anchor[0], right_rope_anchor[1]], [self.plane_pos[0], hook_point[1]]]
                 #print("Righ rope", right_rope)
-                left_arm = [[start_left_rope_anchor[0]-vlas_x, start_left_rope_anchor[1]-vlas_y], [left_rope_anchor[0], left_rope_anchor[1]]]
-                right_arm = [[start_right_rope_anchor[0]-vras_x, start_right_rope_anchor[1]-vras_y], [right_rope_anchor[0], right_rope_anchor[1]]]
+                left_arm = [[self.start_left_rope_anchor[0]-self.vlas_x, self.start_left_rope_anchor[1]-self.vlas_y], [left_rope_anchor[0], left_rope_anchor[1]]]
+                right_arm = [[self.start_right_rope_anchor[0]-self.vras_x, self.start_right_rope_anchor[1]-self.vras_y], [right_rope_anchor[0], right_rope_anchor[1]]]
                 extra_vec = [3, 0, self.rope_len, 0]#extra_vec = [right_rope_anchor[0], right_rope_anchor[1], f_rope_r[0], f_rope_r[1]]
                 plot.update_plot(plane_plot, [0, 0], [0, 0], left_rope, right_rope, left_arm, right_arm, extra_vec) #Plane[ x, y, x vel, y vel], [0, 0], [0, 0], left_rope[armx, army, planex, planey], 
                 #right_rope[armx, army, planex, planey], left_arm[centerx, centery, endpointx, endpointy], right_arm[centerx, centery, endpointx, endpointy]
@@ -994,7 +1005,7 @@ class ar_model(object):
 if __name__ == "__main__":
     model = ar_model()
     model.main() # spring_forcediagram()
-
+    
     # center = np.array([4, 3])
     # end_pos = np.array([4, 0])
     #
