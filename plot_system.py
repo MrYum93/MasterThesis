@@ -140,7 +140,7 @@ class PlotSystem(object):
         self.plot_torsion_spring(right_spring[0], right_spring[1])
         self.plot_extra_vector(extra_vec[0], extra_vec[1], extra_vec[2], extra_vec[3])
 
-        self.fig.canvas.flush_events()
+        self.fig.canvas.flush_events()      
 
     def plot_plane(self, pos_x, pos_y, vel_x, vel_y):
         plt.arrow(pos_x, pos_y, vel_x, vel_y, head_width=0.05, head_length=0.1)
@@ -160,6 +160,9 @@ class PlotSystem(object):
         end_point[0] = (math.cos(theta)) * rad + center[0]
         end_point[1] = (math.sin(theta)) * rad + center[1]
         return end_point
+
+    def close_plot(self):
+        plt.close()
 
     def run(self):
         '''

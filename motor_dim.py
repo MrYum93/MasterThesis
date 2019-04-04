@@ -11,7 +11,11 @@ acceleration_torque_list = []
 RPM_list = []
 radius_list = []
 length_list = []
+<<<<<<< HEAD
+
+=======
 rope_speed_list = []
+>>>>>>> e2821b4043c4d88a7ed3e5759251bf80b188d9ea
 
 def pre_compute_spiral():
     start_r = 0.015
@@ -31,8 +35,6 @@ def pre_compute_spiral():
         radius_list.append(r)
         l += math.sqrt(r**2+((r-last_r)/delta_theta)**2)*delta_theta
         radius_list.append(r)
-        #if r % distance_windings == 0:
-        #print("r, l", r, l, theta)
         length_list.append(l)
         last_r = r
 
@@ -127,7 +129,13 @@ braking_force_two_motors = fw_momentum/braking_time
 
 braking_force_one_motor = braking_force_two_motors/2
 
+<<<<<<< HEAD
+fw_position = 0.0
+=======
 fw_position = -17
+>>>>>>> e2821b4043c4d88a7ed3e5759251bf80b188d9ea
+
+
 
 #Now lets step through the process with small time steps
 
@@ -136,9 +144,32 @@ position_list = []
 speed_list = []
 torque_list = []
 time_list = []
+<<<<<<< HEAD
+time = 0.0
+pre_compute_spiral()
+while(fw_speed > 0):
+    fw_position += fw_speed*delta_t
+    #print("Fw position", fw_position)
+    position_list.append(fw_position)
+    motor_radius = fw_x_to_motor_r(fw_position)
+    #motor_radius = motor_diameter/2
+    torque = braking_force_one_motor*motor_radius
+    time += delta_t
+    time_list.append(time)
+    #As each motor is expected to change the momentum by this amount we multiply by two
+    delta_momentum = (braking_force_one_motor*delta_t)*2
+
+    fw_momentum -= delta_momentum
+    fw_speed = fw_momentum/fw_mass
+    speed_list.append(fw_speed)
+    torque_list.append(torque)
+
+fig = plt.figure()
+plt.plot(time_list, speed_list, 'ro')
+=======
 time = -1
 pre_compute_spiral()
-torque = 0
+torque = 1
 while(fw_speed > 0):
 
     fw_position += fw_speed*delta_t
@@ -146,7 +177,9 @@ while(fw_speed > 0):
     if time >= 0:
         motor_radius = fw_x_to_motor_r(fw_position)
         #motor_radius = motor_diameter/2
-        torque = braking_force_one_motor*motor_radius
+        braking_force_one_motor = torque/motor_radius
+        print("Braking force", braking_force_one_motor)
+        #torque = braking_force_one_motor*motor_radius
         delta_momentum = (braking_force_one_motor*delta_t)*2
         fw_momentum -= delta_momentum
         fw_speed = fw_momentum/fw_mass
@@ -169,20 +202,29 @@ while(fw_speed > 0):
 plt.style.use('fivethirtyeight')
 fig = plt.figure()
 plt.plot(time_list, speed_list)
+>>>>>>> e2821b4043c4d88a7ed3e5759251bf80b188d9ea
 fig.suptitle('fw speed', fontsize=20)
 plt.xlabel('Time since hooking', fontsize=18)
 plt.ylabel('Fw speed', fontsize=16)
 plt.show()
 
 fig = plt.figure()
+<<<<<<< HEAD
+plt.plot(time_list, position_list, 'ro')
+=======
 plt.plot(time_list, position_list)
+>>>>>>> e2821b4043c4d88a7ed3e5759251bf80b188d9ea
 fig.suptitle('fw position', fontsize=20)
 plt.xlabel('Time since hooking', fontsize=18)
 plt.ylabel('Fw position', fontsize=16)
 plt.show()
 
 fig = plt.figure()
+<<<<<<< HEAD
+plt.plot(time_list, torque_list, 'ro')
+=======
 plt.plot(time_list, torque_list)
+>>>>>>> e2821b4043c4d88a7ed3e5759251bf80b188d9ea
 fig.suptitle('motor torque', fontsize=20)
 plt.xlabel('Time since hooking', fontsize=18)
 plt.ylabel('motor torque', fontsize=16)
@@ -190,12 +232,22 @@ plt.show()
 del time_list[0]
 
 fig = plt.figure()
+<<<<<<< HEAD
+plt.plot(time_list, RPM_list, 'ro')
+=======
 plt.plot(time_list, RPM_list)
+>>>>>>> e2821b4043c4d88a7ed3e5759251bf80b188d9ea
 fig.suptitle('motor RPM', fontsize=20)
 plt.xlabel('Time since hooking', fontsize=18)
 plt.ylabel('motor RPM', fontsize=16)
 plt.show()
 
+<<<<<<< HEAD
+del time_list[0]
+
+fig = plt.figure()
+plt.plot(time_list, omega_list, 'ro')
+=======
 fig = plt.figure()
 plt.plot(time_list, rope_speed_list)
 fig.suptitle('Rope speed', fontsize=20)
@@ -207,6 +259,7 @@ del time_list[0]
 
 fig = plt.figure()
 plt.plot(time_list, omega_list)
+>>>>>>> e2821b4043c4d88a7ed3e5759251bf80b188d9ea
 fig.suptitle('motor angular speed', fontsize=20)
 plt.xlabel('Time since hooking', fontsize=18)
 plt.ylabel('motor angular speed', fontsize=16)
@@ -216,19 +269,29 @@ plt.show()
 
 
 fig = plt.figure()
+<<<<<<< HEAD
+plt.plot(time_list, alpha_list, 'ro')
+=======
 plt.plot(time_list, alpha_list)
+>>>>>>> e2821b4043c4d88a7ed3e5759251bf80b188d9ea
 fig.suptitle('motor angular acceleration', fontsize=20)
 plt.xlabel('Time since hooking', fontsize=18)
 plt.ylabel('motor angular acceleration', fontsize=16)
 plt.show()
 
 fig = plt.figure()
+<<<<<<< HEAD
+plt.plot(time_list, acceleration_torque_list, 'ro')
+=======
 plt.plot(time_list, acceleration_torque_list)
+>>>>>>> e2821b4043c4d88a7ed3e5759251bf80b188d9ea
 fig.suptitle('motor acceleration torque', fontsize=20)
 plt.xlabel('Time since hooking', fontsize=18)
 plt.ylabel('motor acceleration torque', fontsize=16)
 plt.show()
 
+<<<<<<< HEAD
+=======
 del RPM_list[0]
 fig = plt.figure()
 plt.plot(acceleration_torque_list, RPM_list)
@@ -238,6 +301,7 @@ plt.ylabel('RPM', fontsize=16)
 plt.show()
 
 
+>>>>>>> e2821b4043c4d88a7ed3e5759251bf80b188d9ea
 def old_fw_x_to_motor_r(fw_x):
     #Lets define the distance between the two arms to 2 meter
     half_d = 1
