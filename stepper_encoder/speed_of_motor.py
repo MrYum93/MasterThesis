@@ -44,7 +44,7 @@ import matplotlib.pyplot as plt
 
 class SpeedOfMotor():
     def __init__(self):
-        self.encoder_stepper = pd.read_csv("../data/encoder_reads.txt")
+        self.encoder_stepper = pd.read_csv("../data_for_git/encoder_reads.txt")
         self.total_tics = 1024
         self.tick_deg = 360/1024
 
