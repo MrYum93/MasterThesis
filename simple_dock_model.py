@@ -26,7 +26,7 @@ TO_DEG = 180 / math.pi
 # We're using SI units
 class ar_model(object):
     def __init__(self):
-        self.interactive = False
+        self.interactive = True
         self.plane_verbose = False
         self.cr_verbose = False
         self.right_arm_verbose = False
@@ -49,14 +49,14 @@ class ar_model(object):
         self.spring_init_vel = 0
 
         self.time = 0.0
-        self.delta_t = 0.001
+        self.delta_t = 0.005
 
         self.neutral_rope_length = 1
         self.rope_len = 1
         self.rope_k = 200
 
         self.plane_mass = 0.7
-        self.plane_pos = np.array([0, -2, 0]) #The plane starts one meter before the docking station before it is hooked
+        self.plane_pos = np.array([0, -0.1, 0]) #The plane starts one meter before the docking station before it is hooked
         self.plane_vel = np.array([0, 10, 0])
         self.plane_acc = np.array([0, 0, 0])
         self.plane_displacement = 0
@@ -126,7 +126,7 @@ class ar_model(object):
         #103H7823-1740 https://docs-emea.rs-online.com/webdocs/141d/0900766b8141d50f.pdf
         self.motor_inertia = 0.000084
         self.motor_load_inertia = 0.00803026571
-        self.motor_pull_out_torque = 2  #This is a worst case estimate
+        self.motor_pull_out_torque = 1.5  #This is a worst case estimate
         self.motor_max_alpha = self.motor_pull_out_torque/(self.motor_load_inertia+self.motor_inertia) #t = I * alpha <=> alpha = t/i
         #Right motor
         #self.motor_r_thetha
@@ -520,7 +520,7 @@ class ar_model(object):
         plt.plot(self.time_l, rounds_per_min_list)
         #plt.title('Motor angular speed', fontsize=20)
         plt.xlabel('Time [s]', fontsize=18)
-        plt.ylabel('Omega [rad/s]', fontsize=16)
+        plt.ylabel('Motor speed [RPM]', fontsize=16)
         
         #fig = plt.figure()
         #plt.subplot(3,1,3)
@@ -528,8 +528,8 @@ class ar_model(object):
         #plt.title('Motor theta', fontsize=20)
         #plt.xlabel('Time [s]', fontsize=18)
         #plt.ylabel('Alpha [rad/s^2]', fontsize=16)
-        plt.savefig("Motor_plots.png")
-        #plt.show()
+        #plt.savefig("Motor_plots.png")
+        plt.show()
 
 
     def left_motor(self, plane_hooked):
@@ -537,31 +537,39 @@ class ar_model(object):
         de_accelerate = False
         #print("Motor acceleration max", self.motor_max_alpha)
         if self.motor_phase == 1:
-            
+            #new_len = (self.half_distane_poles**2 + self.plane_pos[1]**2)**0.5
 
-
+            #camparable_speed = old_len - new_len /
             if plane_hooked:
-                if self.rope_speed < math.sqrt(self.half_distane_poles**2+self.plane_vel[1]**2):
+                if self.rope_speed < math.sqrt(self.half_distane_poles**2+self.plane_vel[1]**2): #d/dy(sqrt(k^2+y^2)) #Prøv at differientiere positionen på hypotenusen.
                     accelerate = True
                 elif self.rope_speed > math.sqrt(self.half_distane_poles**2+self.plane_vel[1]**2):
                     de_accelerate = True
+                '''
+                if self.rope_speed < self.plane_pos[1]/math.sqrt(self.half_distane_poles**2+self.plane_pos[1]**2): #d/dy(sqrt(k^2+y^2)) #Prøv at differientiere positionen på hypotenusen.
+                    accelerate = True
+                elif self.rope_speed > self.plane_pos[1]/math.sqrt(self.half_distane_poles**2+self.plane_pos[1]**2):
+                    de_accelerate = True
+                '''
                 if accelerate: #The motor will accelerate forward
                     self.motor_l_alpha = self.motor_max_alpha
                     self.motor_l_omega += self.motor_l_alpha*self.delta_t
                     self.motor_l_theta += self.motor_l_omega*self.delta_t
                     self.rope_len = self.neutral_rope_length + self.motor_l_theta * self.motor_l_radius
-                    #print("Accelerating", self.rope_len)
+                    print("Accelerating", self.rope_len)
                 elif de_accelerate:
                     self.motor_l_alpha = -self.motor_max_alpha
                     self.motor_l_omega += self.motor_l_alpha*self.delta_t
                     self.motor_l_theta += self.motor_l_omega*self.delta_t
                     self.rope_len = self.neutral_rope_length + self.motor_l_theta * self.motor_l_radius
-                    #print("De accelerating")
+                    print("De accelerating")
+                
+                #old_len =new_len
             
             #print("Motor_l_theta", self.motor_l_theta)
             if self.rope_speed - math.sqrt(self.half_distane_poles**2+self.plane_vel[1]**2) > -0.1 and self.rope_speed - math.sqrt(self.half_distane_poles**2+self.plane_vel[1]**2) < 0.1:  # 1 - 1.1 = -0.1 : 1.1 - 1 = 0.1
                 print("Target speed acquired")
-                self.motor_phase = 2
+                self.motor_phase = 1
         if self.motor_phase == 2:
             #In this phase the motor should de accelerate the plane and therefore add force to the two ropes        
             self.motor_l_alpha = -self.motor_max_alpha
@@ -578,9 +586,19 @@ class ar_model(object):
             #self.plane_pos = self.plane_pos + self.plane_vel * self.delta_t
             #if self.rope_len - self.neutral_rope_length > -0.1 and self.rope_len - self.neutral_rope_length < 0.1:
             #    self.motor_phase = 3
-            if self.plane_vel[1] - 0.0 > -0.1 and self.plane_vel[1] - 0.0  < 0.1:
-                self.motor_phase = 3
-
+            
+            if self.motor_l_omega < 0:
+                self.motor_l_omega = 0
+                self.motor_phase = 4
+            
+            
+            #if self.plane_vel[1] - 0.0 > -0.3 and self.plane_vel[1] - 0.0  < 0.3:
+            #    self.motor_phase = 3
+        #Hvad skal der til før vi kan vælge en fornuftig motor?
+            #Er det for lidt med constant pull out torque
+        #Skal vi have kode der kan estimere hastigheden ud fra yaw - inden vi går videre med hardware til systemet?
+            #Check
+        #
         if self.motor_phase == 3:
             self.motor_force 
             if self.rope_len > self.neutral_rope_length:
@@ -608,6 +626,7 @@ class ar_model(object):
             self.motor_force = 0
             self.motor_l_alpha = 0
             self.motor_l_omega = 0   
+        print("Motor state", self.motor_phase)
         
         #PID loop for the motor:
         '''run(speed):
@@ -676,8 +695,8 @@ class ar_model(object):
         self.theta_left = math.atan2(start_position_vector_left_arm[1], start_position_vector_left_arm[0])
         #Interactive plot
         if self.interactive:
-            plot = PlotSystem(-5, 5, -5, 5)
-        while self.time < 1:
+            plot = PlotSystem(-5, 5, -10, 10)
+        while self.time < 3:
             '''
             Description: This version introduces the two arms, but with no springs attached
             '''
@@ -688,7 +707,7 @@ class ar_model(object):
             rope_before = self.rope_len
             
             #MOTOR call
-            #self.left_motor(plane_hooked)
+            self.left_motor(plane_hooked)
             
             
             rope_after = self.rope_len
@@ -790,15 +809,15 @@ class ar_model(object):
                 #print("Righ rope", right_rope)
                 left_arm = [[start_left_rope_anchor[0]-vlas_x, start_left_rope_anchor[1]-vlas_y], [left_rope_anchor[0], left_rope_anchor[1]]]
                 right_arm = [[start_right_rope_anchor[0]-vras_x, start_right_rope_anchor[1]-vras_y], [right_rope_anchor[0], right_rope_anchor[1]]]
-                extra_vec = [right_rope_anchor[0], right_rope_anchor[1], self.rope_len, 0]#extra_vec = [right_rope_anchor[0], right_rope_anchor[1], f_rope_r[0], f_rope_r[1]]
+                extra_vec = [3, 0, self.rope_len, 0]#extra_vec = [right_rope_anchor[0], right_rope_anchor[1], f_rope_r[0], f_rope_r[1]]
                 plot.update_plot(plane_plot, [0, 0], [0, 0], left_rope, right_rope, left_arm, right_arm, extra_vec) #Plane[ x, y, x vel, y vel], [0, 0], [0, 0], left_rope[armx, army, planex, planey], 
                 #right_rope[armx, army, planex, planey], left_arm[centerx, centery, endpointx, endpointy], right_arm[centerx, centery, endpointx, endpointy]
                 time.sleep(0.001)
 
         
             
-        self.plot_thetas()
-        #self.plot_motor()
+        #self.plot_thetas()
+        self.plot_motor()
         #self.plot_right_arm()
         #self.plot_plane()
 
