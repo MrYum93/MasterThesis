@@ -25,7 +25,7 @@ Run as follows:
 #define PIN_A 27
 #define PIN_B 24
 #define PIN_Z 23
-#define BILLION 1000000000L
+#define MILLION 1000000L
 
 
 // the phases high=1, low=0
@@ -141,12 +141,12 @@ int main(void) {
     }
     
     clock_gettime(CLOCK_MONOTONIC, &time_now);
-    t = BILLION * time_now.tv_sec + time_now.tv_nsec;
-    //printf("time in EPOCH = %llu nanoseconds\n", (long long unsigned int) t);
+    t = MILLION * time_now.tv_sec + time_now.tv_nsec;
+    printf("time in EPOCH = %llu nanoseconds\n", (long long unsigned int) t);
 
     
     // print the tics and revolutions
-    fprintf(f, "%d,%d,%d\n", t, tics, revolutions);
+    fprintf(f, "%u,%d,%d\n", t, tics, revolutions);
 
     
    /* printf( "%d\n", A );

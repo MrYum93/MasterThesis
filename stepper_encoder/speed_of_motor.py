@@ -44,7 +44,7 @@ import matplotlib.pyplot as plt
 
 class SpeedOfMotor():
     def __init__(self):
-        self.encoder_stepper = pd.read_csv("../data_for_git/encoder_reads.txt")
+        self.encoder_stepper = pd.read_csv("../data_for_git/encoder_data.txt")
         self.total_tics = 1024
         self.tick_deg = 360/1024
 
@@ -54,16 +54,41 @@ class SpeedOfMotor():
         # print(index)
         time = self.encoder_stepper['time']
         tics = self.encoder_stepper['tics']
+        rev = 0
+        tic_i = 0
+        tmp_tic = 0
+        time_now = 0
+        time_old = 0
+        deg_now = 0
+        deg_old = 0
         speed_l = []
         time_l = []
-        for i in range(int((len(time)-1))):
-            delta_time = time[i+1] - time[i]
-            delta_deg = tics[i+1] - tics[i]
-            tics_speed = delta_deg/delta_time
-            # if tics_speed > 0.0:
-            speed_l.append(tics[i]) 
-            time_l.append(time[i])
+        rev_l = []
+        for i in range(len(time[94500:-1])):# range(int((len(time)-1))):
+            index = i# + 94500
+
+            tic_i = tics[index] - tmp_tic
+            if tic_i >= 1024:
+                tmp_tic = tics[index]
+                time_now = time[index]
+                deg_now = tics[index]
+
+                delta_time = time_old - time_now
+                delta_deg = deg_old - deg_now
+                tics_speed = delta_deg/delta_time
+                # print("time", time[index])
+                # print("tics speed", tics_speed)# tics[index])
+                print("speed", tics_speed)
+
+                time_old = time_now
+                deg_old = deg_now
+
+                speed_l.append(tics_speed)#tics[index])
+                time_l.append(time[index])
+
         fig = plt.figure()
+        plt.xlabel('time')
+        plt.ylabel('speed')
         plt.plot(time_l, speed_l, '-')
         plt.show()
 
