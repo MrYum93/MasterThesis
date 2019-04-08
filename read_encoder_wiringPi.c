@@ -154,8 +154,8 @@ int main(void) {
     
    /* printf( "%d\n", A );
     printf( "%d\n", B );*/
-    printf( "%f\n", speed );
-    printf("tics: %d\n", tics);
+    printf( "Speed: %f\n", speed );
+    //printf("tics: %d\n", tics);
     //delay( 200 ); // wait 0.2 second
   }
   
