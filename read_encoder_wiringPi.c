@@ -152,14 +152,19 @@ int main(void) {
     printf( "dir : %d\n", dir );
 */
 
-    if (old_t != t){
+    if (t != old_t){
       speed = (tics-(old_tics)) / (t-old_t); // t is in ms
       printf( "Speed: %f\n", speed );
       printf( "tics: %d\n", tics );
     }
+    else {
+      speed = speed;
+    }
 
     // print the tics and revolutions
     fprintf(f, "%u,%d,%d,%f\n", t, tics, revolutions, speed);
+
+    // Update variables
     old_tics = tics;
     old_t = t;
   }
