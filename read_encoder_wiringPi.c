@@ -39,13 +39,11 @@ volatile int revolutions = 0;
 volatile char rev_flag = 0;
 volatile signed int dir = 0;  // either 1 [CW] or -1 [CCW]
 volatile signed long int tics = 0;
+volatile float speed = 0;
 volatile long ms = 0;
 volatile long unsigned int t = 0;
+volatile long unsigned int old_t = 0;
 
-//struct timespec {
-//        time_t   tv_sec;        /* seconds */
-//        long     tv_nsec;       /* nanoseconds */
-//};
 
 
 // -------------------------------------------------------------------------
@@ -113,6 +111,7 @@ int main(void) {
     if (delta == 0){
       //No change
       tics = tics;
+      dir = 0;
     }
     else if (delta == 1){
       //CW
@@ -137,7 +136,7 @@ int main(void) {
       revolutions += dir;
       rev_flag = 1;
     }
-    else{
+    else if (Z == 1){
       rev_flag = 0;
     }
     
@@ -146,14 +145,16 @@ int main(void) {
     t = 1000 * time_now.tv_sec + ms;//time_now.tv_nsec;
     //printf("time in EPOCH = %lu nanoseconds\n", (long unsigned int) t);
 
+    speed = (tics-(tics-dir)) / (t-old_t);
     
     // print the tics and revolutions
     fprintf(f, "%u,%d,%d\n", t, tics, revolutions);
 
+    old_t = t;
     
    /* printf( "%d\n", A );
-    printf( "%d\n", B );
-    printf( "%d\n", Z );*/
+    printf( "%d\n", B );*/
+    printf( "%f\n", speed );
     printf("tics: %d\n", tics);
     //delay( 200 ); // wait 0.2 second
   }
