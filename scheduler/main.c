@@ -77,7 +77,9 @@ static int sched_init (void)
 
 	/* Setup high priority task */
 	my_sched_params.sched_priority = sched_get_priority_max(SCHED_FIFO);
-	if (! sched_setscheduler(0, SCHED_FIFO, &my_sched_params))
+	printf("sched, %d\n", sched_setscheduler(0, SCHED_FIFO, &my_sched_params));
+//	printf("(!0)");
+	if (! (sched_setscheduler(0, SCHED_FIFO, &my_sched_params)+1))
 	{
 		/* lock all pages in memory */
 		mlockall(MCL_CURRENT | MCL_FUTURE);
@@ -104,9 +106,11 @@ static int sched_init (void)
 /***************************************************************************/
 int main (int argc, char **argv)
 {
+	printf("*****MAIN*****\n");
 	/* initialize scheduler */
 	if (! sched_init())
 	{
+		printf("***SCHED***");
 		/* initialize application */
 		if (app_init(argc, argv) == APP_INIT_OK)
 		{
