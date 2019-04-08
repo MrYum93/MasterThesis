@@ -39,6 +39,7 @@ volatile int revolutions = 0;
 volatile char rev_flag = 0;
 volatile signed int dir = 0;  // either 1 [CW] or -1 [CCW]
 volatile signed long int tics = 0;
+volatile signed long int old_tics = 0;
 volatile float speed = 0;
 volatile long ms = 0;
 volatile long unsigned int t = 0;
@@ -100,7 +101,7 @@ int main(void) {
   }
   
   /* print header to file */
-  const char *header = "time,tics,rev";
+  const char *header = "time,tics,rev,speed";
   fprintf(f, "%s\n", header);
   
   struct timespec time_now;
@@ -139,26 +140,30 @@ int main(void) {
     else if (Z == 1){
       rev_flag = 0;
     }
-    
+
     clock_gettime(CLOCK_MONOTONIC, &time_now);
     ms = round(time_now.tv_nsec / 1000000);
     t = 1000 * time_now.tv_sec + ms;//time_now.tv_nsec;
+//    t = time_now.tv_sec;
+/*
     //printf("time in EPOCH = %lu nanoseconds\n", (long unsigned int) t);
+    printf( "time: %d\n", t );
+    printf( "t_ol: %d\n", old_t );
+    printf( "dir : %d\n", dir );
+*/
 
-    speed = (tics-(tics-dir)) / (t-old_t);
-    
+    if (old_t != t){
+      speed = (tics-(old_tics)) / (t-old_t); // t is in ms
+      printf( "Speed: %f\n", speed );
+      printf( "tics: %d\n", tics );
+    }
+
     // print the tics and revolutions
-    fprintf(f, "%u,%d,%d\n", t, tics, revolutions);
-
+    fprintf(f, "%u,%d,%d,%f\n", t, tics, revolutions, speed);
+    old_tics = tics;
     old_t = t;
-    
-   /* printf( "%d\n", A );
-    printf( "%d\n", B );*/
-    printf( "Speed: %f\n", speed );
-    //printf("tics: %d\n", tics);
-    //delay( 200 ); // wait 0.2 second
   }
-  
+
   fclose(f);
 
   return 0;
