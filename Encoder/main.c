@@ -47,7 +47,7 @@
 /***************************************************************************/
 /* application includes */
 
-#include "app.h"
+/*#include "app.h"*/
 #include "read_encoder_wiringPi.h"
 
 /***************************************************************************/
@@ -67,7 +67,7 @@ static void quit () /* do not add void here */
 	enc_quit();
 
 	/* exit */
-	exit (EXIT_SUCCESS);
+	exit(EXIT_SUCCESS);
 }
 /***************************************************************************/
 static int sched_init (void)
@@ -79,8 +79,7 @@ static int sched_init (void)
 	/* Setup high priority task */
 	my_sched_params.sched_priority = sched_get_priority_max(SCHED_FIFO);
 	printf("sched, %d\n", sched_setscheduler(0, SCHED_FIFO, &my_sched_params));
-//	printf("(!0)");
-	if (! (sched_setscheduler(0, SCHED_FIFO, &my_sched_params)+1))
+	if (! (sched_setscheduler(0, SCHED_FIFO, &my_sched_params)))
 	{
 		/* lock all pages in memory */
 		mlockall(MCL_CURRENT | MCL_FUTURE);
@@ -111,9 +110,9 @@ int main (int argc, char **argv)
 	/* initialize scheduler */
 	if (! sched_init())
 	{
-		printf("***SCHED***");
+		printf("***SCHED***\n");
 		/* initialize application */
-		if enc(_init(argc, argv) == ENC_INIT_OK)
+		if (enc_init() == ENC_INIT_OK)
 		{
 			int stop = false;
 

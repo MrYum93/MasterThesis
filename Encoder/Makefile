@@ -35,10 +35,10 @@ NAME = demo_encoder
 OBJECTS = main.o read_encoder_wiringPi.o
 
 CC = gcc
-CFLAGS =  -Wall -pedantic
+CFLAGS = -Wall -pedantic
 LDFLAGS = -lm -lwiringPi -lrt
 BINARIES =  $(NAME)
-LIBS	=
+LIBS	= 
 CLEAN = clean
 
 all: $(BINARIES) cleanobj

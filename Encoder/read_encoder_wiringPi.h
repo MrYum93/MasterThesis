@@ -1,3 +1,5 @@
+#ifndef ENCODER_H
+#define ENCODER_H
 /***************************************************************************
 # Copyright (c) 2018, Mathias W. Madsen <matam14@student.sdu.dk> <mwittenm@gmail.com>
 #                     Mark Buch         <mabuc13@student.sdu.dk>
@@ -33,6 +35,7 @@
 # YYYY-MM-DD
 # 2018-11-07 MW First version
 # *****************************************************************************/
+
 /* system includes */
 
 #include <stdio.h>
@@ -49,12 +52,12 @@
 /***************************************************************************/
 /* defines */
 
-#define true					1
-#define false					0
+#define true			1
+#define false			0
 
-#define SCHED_INTERVAL 			1e3; /* in microsec */
+#define SCHED_INTERVAL		1e3; /* in microsec */
 
-#define ENC_INIT_OK				0
+#define ENC_INIT_OK		0
 
 #define PIN_A                   27
 #define PIN_B                   24
@@ -64,29 +67,10 @@
 /***************************************************************************/
 /* global variables */
 
-// the phases high=1, low=0
-volatile int A = 0;
-volatile int B = 0;
-volatile int Z = 1; // is always hihg unless it is at home pos
-volatile int seq = 0;
-volatile int old_seq = 0;
-volatile int delta = 0;
-volatile int revolutions = 0;
-volatile char rev_flag = 0;
-volatile signed int dir = 0;  // either 1 [CW], 0[NOTHING] or -1 [CCW]
-volatile signed long int tics = 0;
-volatile signed long int old_tics = 0;
-volatile float speed = 0;
-volatile long ms = 0;
-volatile long ms_last = 0;
-volatile long signed int t = 0;
-volatile long signed int t_last = 0;
-
-
 /***************************************************************************/
 /* function prototypes */
 
-int enc_init(int argc, char **argv);
+int enc_init(void);
 int enc_update(void);
 void enc_quit(void);
 void aEvent(void);
@@ -95,3 +79,4 @@ void zEvent(void);
 
 
 /***************************************************************************/
+#endif

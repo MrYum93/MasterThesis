@@ -1,3 +1,3 @@
 make
-./schedulerdemo
+sudo ./demo_encoder
 

@@ -25,20 +25,20 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 # ****************************************************************************
-# 
+#
 # isr4pi.c
 # D. Thiebaut
 # based on isr.c from the WiringPi library, authored by Gordon Henderson
 # https://github.com/WiringPi/WiringPi/blob/master/examples/isr.c
-# 
+#
 # Compile as follows:
-# 
+#
 #     gcc -o read_encoder read_encoder_wiringPi.c -lwiringPi -lrt -lm
-# 
+#
 # Run as follows:
-# 
+#
 #     sudo ./isr4pi
-# 
+#
 # This is a script containing all functions needed to pass RoVi1
 #
 # Revision
@@ -56,13 +56,33 @@
 /***************************************************************************/
 /* defines */
 
+
 /***************************************************************************/
 /* variables */
+/* the phases high=1, low=0 */
 FILE *f;
 unsigned long update_cnt;
+struct timespec time_now;
+struct timespec time_last;
+volatile int A = 0;
+volatile int B = 0;
+volatile int Z = 1; /* is always hihg unless it is at home pos*/
+volatile int seq = 0;
+volatile int old_seq = 0;
+volatile int delta = 0;
+volatile int revolutions = 0;
+volatile char rev_flag = 0;
+volatile signed int dir = 0;  /* either 1[CW], 0[NOTHING] or -1[CCW]*/
+volatile signed long int tics = 0;
+volatile signed long int old_tics = 0;
+volatile float speed = 0;
+volatile long ms = 0;
+volatile long ms_last = 0;
+volatile long signed int t = 0;
+volatile long signed int t_last = 0;
 
-// -------------------------------------------------------------------------
-// myInterrupt:  called every time an event occurs
+/* -------------------------------------------------------------------------
+   myInterrupt:  called every time an event occurs */
 void aEvent(void) {
   A = digitalRead(PIN_A);
 }
@@ -71,42 +91,49 @@ void bEvent(void) {
   B = digitalRead(PIN_B);
 }
 
+/* is high all the time except in home pos */
 void zEvent(void) {
-  // is high all the time except in home pos
   Z = digitalRead(PIN_Z);
 }
 
-int enc_init(int argc, char **argv) {
-  // init main
+int enc_init(void) {
+  /* init main */
   printf("******init read_encoder*******\n");
 
-  // sets up the wiringPi library
+  /* sets up the wiringPi library */
   if (wiringPiSetup () < 0) {
     fprintf (stderr, "Unable to setup wiringPi: %s\n", strerror (errno));
     return 1;
   }
 
-  // set all pins as input
+  /* set all pins as input */
   pinMode (PIN_A, INPUT) ;
   pinMode (PIN_B, INPUT) ;
   pinMode (PIN_Z, INPUT) ;
 
-  // set Pin 17/0 generate an interrupt on high-to-low transitions
-  // and attach myInterrupt() to the interrupt
-  if ( wiringPiISR (PIN_A, INT_EDGE_BOTH, &aEvent) < 0 ) {
-    fprintf (stderr, "Unable to setup ISR: %s\n", strerror (errno));
-    return 1;
-  }
+  /* set PINs to events generate an interrupt on high-to-low transitions
+     and attach () to the interrupt */
+  /*wiringPiISR (PIN_A, INT_EDGE_BOTH, &aEvent);
+  wiringPiISR (PIN_B, INT_EDGE_BOTH, &bEvent);
+  wiringPiISR (PIN_Z, INT_EDGE_BOTH, &zEvent);*/
   if ( wiringPiISR (PIN_B, INT_EDGE_BOTH, &bEvent) < 0 ) {
     fprintf (stderr, "Unable to setup ISR: %s\n", strerror (errno));
     return 1;
   }
+  printf("here1\n");
+  if ( wiringPiISR (PIN_A, INT_EDGE_BOTH, &aEvent) < 0 ) {
+    fprintf (stderr, "Unable to setup ISR: %s\n", strerror (errno));
+    return 1;
+  }
+  printf("here2\n");
+
   if ( wiringPiISR (PIN_Z, INT_EDGE_BOTH, &zEvent) < 0 ) {
     fprintf (stderr, "Unable to setup ISR: %s\n", strerror (errno));
     return 1;
   }
-  
-  f = fopen("data_for_git/encoder_data.txt", "w");
+  printf("here3\n");
+
+  f = fopen("../data_for_git/encoder_data.txt", "w");
   if (f == NULL)
   {
     printf("Error opening txt file!\n");
@@ -117,30 +144,27 @@ int enc_init(int argc, char **argv) {
   const char *header = "time,tics,rev,speed";
   fprintf(f, "%s\n", header);
   
-  struct timespec time_now;
-  struct timespec time_last;
-
   clock_gettime(CLOCK_MONOTONIC, &time_last);
   ms_last = round(time_last.tv_nsec / 1000000);
-  t_last = 1000 * time_last.tv_sec + ms_last;//time_now.tv_nsec;
-
+  t_last = 1000 * time_last.tv_sec + ms_last;/*time_now.tv_nsec;*/
 
   int status = ENC_INIT_OK;
 
-	printf ("enc_init() in read_encoder_wiringPi.c called\n");
+  printf ("enc_init() in read_encoder_wiringPi.c called\n");
 
-	return status;
+  return status;
 }
 
 void enc_quit(void) {
   fclose(f);
-	printf ("enc_quit() in read_encoder_wiringPi.c called\n");
+  printf ("enc_quit() in read_encoder_wiringPi.c called\n");
 }
 
 // -------------------------------------------------------------------------
 // main
-int enc_main(void) {
+int enc_update(void) {
   update_cnt++;
+  /*printf("update_cnt\n");*/
   if(update_cnt % 1000 == 0){
     
     seq = A << 1 | B;
@@ -174,7 +198,7 @@ int enc_main(void) {
             tics += 1;
             dir = 1;
           }
-        case 0b10:
+        case 2:
           if (old_seq == 3){
             tics += 1;
             dir = 1;
@@ -190,7 +214,7 @@ int enc_main(void) {
     old_seq = seq;
 
     // Check for home pos
-    if (Z == 0 & rev_flag == 0){
+    if ((Z == 0) & (rev_flag == 0)){
       printf("I am home now, %d\n", revolutions);
       revolutions += dir;
       rev_flag = 1;
@@ -202,16 +226,14 @@ int enc_main(void) {
     clock_gettime(CLOCK_MONOTONIC, &time_now);
     ms = round(time_now.tv_nsec / 1000000);
     t = 1000 * time_now.tv_sec + ms;//time_now.tv_nsec;
-  //  t = time_now.tv_sec;
-  /*
+  /*  t = time_now.tv_sec;
       //printf("time in EPOCH = %lu nanoseconds\n", (long unsigned int) t);
       printf( "time: %d\n", t );
       printf( "t_ol: %d\n", old_t );
       printf( "dir : %d\n", dir );
-  */
-
-  //    printf( "t: %d\n", t );
-  //   printf( "t_last: %d\n", t_last );
+*/
+    printf( "t: %ld\n", t );
+    printf( "t_last: %ld\n", t_last );
 
     //speed over 100ms
     if (t >= t_last+100){
@@ -228,15 +250,15 @@ int enc_main(void) {
       speed = speed;
     }
 
-    // print the tics and revolutions
-    fprintf(f, "%u,%d,%d,%f\n", t, tics, revolutions, speed);
+    /* print the tics and revolutions */
+    fprintf(f, "%li,%ld,%d,%f\n", t, tics, revolutions, speed);
 
-    // Update variables
-  /*
-      clock_gettime(CLOCK_MONOTONIC, &time_last);
-      ms_last = round(time_last.tv_nsec / 1000000);
-      t_last = 1000 * time_last.tv_sec + ms_last;//time_now.tv_nsec;
-  */
+    /* Update variables */
+    /*
+    clock_gettime(CLOCK_MONOTONIC, &time_last);
+    ms_last = round(time_last.tv_nsec / 1000000);
+    t_last = 1000 * time_last.tv_sec + ms_last;//time_now.tv_nsec;
+    */
  
   }
   return 0;
