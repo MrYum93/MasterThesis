@@ -96,10 +96,7 @@ void zEvent(void) {
   Z = digitalRead(PIN_Z);
 }
 
-int enc_init(void) {
-  /* init main */
-  printf("******init read_encoder*******\n");
-
+int init_wiring(void){
   /* sets up the wiringPi library */
   if (wiringPiSetup () < 0) {
     fprintf (stderr, "Unable to setup wiringPi: %s\n", strerror (errno));
@@ -116,23 +113,63 @@ int enc_init(void) {
   /*wiringPiISR (PIN_A, INT_EDGE_BOTH, &aEvent);
   wiringPiISR (PIN_B, INT_EDGE_BOTH, &bEvent);
   wiringPiISR (PIN_Z, INT_EDGE_BOTH, &zEvent);*/
-  if ( wiringPiISR (PIN_B, INT_EDGE_BOTH, &bEvent) < 0 ) {
+  if(wiringPiISR(PIN_B, INT_EDGE_BOTH, &bEvent) < 0 ) {
+    //fprintf (stderr, "Unable to setup ISR: %s\n", strerror (errno));
+    return 1;
+  }
+  printf("here1\n");
+  if(wiringPiISR(PIN_A, INT_EDGE_BOTH, &aEvent) < 0 ) {
+    //fprintf (stderr, "Unable to setup ISR: %s\n", strerror (errno));
+    return 1;
+  }
+  printf("here2\n");
+
+  if(wiringPiISR(PIN_Z, INT_EDGE_BOTH, &zEvent) < 0 ) {
+    //fprintf (stderr, "Unable to setup ISR: %s\n", strerror (errno));
+    return 1;
+  }
+  printf("here3\n");
+
+}
+
+int enc_init(void) {
+  /* init main */
+  printf("******init read_encoder*******\n");
+  //init_wiring();
+  /* sets up the wiringPi library */
+  /*if (wiringPiSetup () < 0) {
+    fprintf (stderr, "Unable to setup wiringPi: %s\n", strerror (errno));
+    return 1;
+  }
+
+  /* set all pins as input */
+  /*pinMode (PIN_A, INPUT) ;
+  pinMode (PIN_B, INPUT) ;
+  pinMode (PIN_Z, INPUT) ;
+
+  /* set PINs to events generate an interrupt on high-to-low transitions
+     and attach () to the interrupt */
+  /*wiringPiISR (PIN_A, INT_EDGE_BOTH, &aEvent);
+  wiringPiISR (PIN_B, INT_EDGE_BOTH, &bEvent);
+  wiringPiISR (PIN_Z, INT_EDGE_BOTH, &zEvent);*/
+  
+  /*if (wiringPiISR(PIN_B, INT_EDGE_BOTH, &bEvent) < 0 ) {
     fprintf (stderr, "Unable to setup ISR: %s\n", strerror (errno));
     return 1;
   }
   printf("here1\n");
-  if ( wiringPiISR (PIN_A, INT_EDGE_BOTH, &aEvent) < 0 ) {
+  if (wiringPiISR(PIN_A, INT_EDGE_BOTH, &aEvent) < 0 ) {
     fprintf (stderr, "Unable to setup ISR: %s\n", strerror (errno));
     return 1;
   }
   printf("here2\n");
 
-  if ( wiringPiISR (PIN_Z, INT_EDGE_BOTH, &zEvent) < 0 ) {
+  if (wiringPiISR(PIN_Z, INT_EDGE_BOTH, &zEvent) < 0 ) {
     fprintf (stderr, "Unable to setup ISR: %s\n", strerror (errno));
     return 1;
   }
   printf("here3\n");
-
+*/
   f = fopen("../data_for_git/encoder_data.txt", "w");
   if (f == NULL)
   {
@@ -165,11 +202,65 @@ void enc_quit(void) {
 int enc_update(void) {
   update_cnt++;
   /*printf("update_cnt\n");*/
-  if(update_cnt % 1000 == 0){
-    
-    seq = A << 1 | B;
+  /*The freq is 2000Hz*//*and 1/50 of 2000Hz is */
+  if(update_cnt % (1) == 0){
+    seq = (A ^ B) | B << 1;  // get sequence according to documentation in drive
+    delta = (seq - old_seq) % 4;
+    if (delta == 0){
+      //No change
+      tics = tics;
+      dir = 0;
+    }
+    if (delta == 1){
+      //CW
+      printf("one CW, %d\n", tics);
+      tics += 1;
+      dir = 1;
+      printf("after one CW, %d\n", tics);
+    }
+    if (delta == 2){
+      //skipped a single read so assume it goes same dir as previously two times
+      tics += dir*2;
+    }
+    if (delta == 3){
+      //CCW
+      printf("one CCW, %d", tics);
+      tics -= 1;
+      dir = -1;
+      printf("after one CCW, %d\n", tics);
+    }
+    // save last seq to compare
+    old_seq = seq;
+/*
+    seq = (A ^ B) | B << 1;  // get sequence according to documentation in drive
+    delta = (seq - old_seq) % 4;
+    switch(delta){
+    case 0:
+      //No change
+      tics = tics;
+      dir = 0;
+    case 1:
+      //CW
+      //printf("one CW, %d\n", tics);
+      tics += 1;
+      dir = 1;
+      //printf("after one CW, %d\n", tics);
+    case 2:
+      //skipped a single read so assume it goes same dir as previously two times
+      tics += dir*2;
+    case 3:
+      //CCW
+      //printf("one CCW, %d", tics);
+      tics -= 1;
+      dir = -1;
+      //printf("after one CCW, %d\n", tics);
+    }
+    // save last seq to compare
+    old_seq = seq;
+*/
+/*    seq = A << 1 | B;
+    //printf("seq, %d\n", seq);
     if (seq != old_seq){
-
       switch(seq){
         case 0:
         if (old_seq == 2){
@@ -209,10 +300,11 @@ int enc_update(void) {
           }
           default:
             tics = tics;
+	    dir = 0;
       }
     }
     old_seq = seq;
-
+*/
     // Check for home pos
     if ((Z == 0) & (rev_flag == 0)){
       printf("I am home now, %d\n", revolutions);
@@ -231,15 +323,16 @@ int enc_update(void) {
       printf( "time: %d\n", t );
       printf( "t_ol: %d\n", old_t );
       printf( "dir : %d\n", dir );
-*/
+
     printf( "t: %ld\n", t );
     printf( "t_last: %ld\n", t_last );
-
-    //speed over 100ms
+*/
+    /*speed over 100ms*/
     if (t >= t_last+100){
       speed = (tics-old_tics) / (t-t_last); // t is in ms
-      printf( "Speed: %f\n", speed );
-      //printf( "tics: %d\n", tics );
+      //printf( "Speed: %f\n", speed );
+      printf( "tics: %ld\n", tics );
+      printf("rev: %d\n", revolutions);
       old_tics = tics;
       //update the new comparison
       clock_gettime(CLOCK_MONOTONIC, &time_last);
@@ -250,9 +343,9 @@ int enc_update(void) {
       speed = speed;
     }
 
-    /* print the tics and revolutions */
+    /* print the tics and revolutions
     fprintf(f, "%li,%ld,%d,%f\n", t, tics, revolutions, speed);
-
+*/
     /* Update variables */
     /*
     clock_gettime(CLOCK_MONOTONIC, &time_last);

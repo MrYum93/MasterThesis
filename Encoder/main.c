@@ -54,7 +54,6 @@
 /* global variables */
 
 static sigset_t wait_mask;
-
 /***************************************************************************/
 void nullhandler(int signo)
 {
@@ -106,6 +105,7 @@ static int sched_init (void)
 /***************************************************************************/
 int main (int argc, char **argv)
 {
+	init_wiring();
 	printf("*****MAIN*****\n");
 	/* initialize scheduler */
 	if (! sched_init())

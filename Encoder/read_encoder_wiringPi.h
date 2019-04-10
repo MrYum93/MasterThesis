@@ -55,7 +55,7 @@
 #define true			1
 #define false			0
 
-#define SCHED_INTERVAL		1e3; /* in microsec */
+#define SCHED_INTERVAL		100; /* in microsec 10000Hz */
 
 #define ENC_INIT_OK		0
 
@@ -70,12 +70,13 @@
 /***************************************************************************/
 /* function prototypes */
 
-int enc_init(void);
-int enc_update(void);
-void enc_quit(void);
 void aEvent(void);
 void bEvent(void);
 void zEvent(void);
+int enc_init(void);
+int enc_update(void);
+void enc_quit(void);
+int init_wiring(void);
 
 
 /***************************************************************************/
