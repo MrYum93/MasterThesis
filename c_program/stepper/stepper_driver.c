@@ -5,6 +5,8 @@
 #include <wiringPi.h>
 #include <time.h>
 #include <math.h>
+
+#include "stepper_driver.h"
 /***************************************************************************/
 /* Pin defines */
 
@@ -12,6 +14,7 @@
 #define PIN_DIR 1//The green wire is direction (pin 11) (wpi 0)
 #define PIN_STEP 0//The grey wire is step (pin 12) (wpi 1)
                         //The black wire is ground (pin 9)
+#define BILLION  1000000000L;
 /***************************************************************************/
 /* methods  */
 int stepper_init();
@@ -22,11 +25,16 @@ int stepper_init();
 /***************************************************************************/
 /* variables */
 volatile long long signed t = 0;
-volatile long signed ms = 0;
-
+volatile long signed ns = 0;
+int step_high = 0;
+long int delta_time = 0;
+long long signed last_time = 0;
+long long int freq = 1000; /*Lets step a thousan times a second*/
+long long int half_period = 0;
+int status = 1;
 /****************************************************************************/
 
-int main(void){
+int stepper_init(void){
   printf("*****stepper main*****\n");
   //int tmp = stepper_init();
   /** Setup **/
@@ -45,49 +53,43 @@ int main(void){
 
   struct timespec time_now;
   clock_gettime(CLOCK_REALTIME, &time_now);
-  ms = round(time_now.tv_nsec / 1000000);
-  t = 1000 * time_now.tv_sec + ms;//Multiply with 1000 to go from nano secs to milli secs
-  int step_high = 0;
-  long int delta_time = 0;
-  long long signed last_time = 0;
+  ns = time_now.tv_nsec;
+  t = ns + time_now.tv_sec*BILLION;
+  
   digitalWrite(PIN_DIR, HIGH);
   digitalWrite(PIN_EN, HIGH);
   printf("*enter while*\n");
-  while(1) {
-    clock_gettime(CLOCK_REALTIME, &time_now);
-    ms = round(time_now.tv_nsec / 1000000);
-    t = 1000 * time_now.tv_sec + ms;//Multiply with 1000 to go from nano secs to milli secs
-    delta_time = t - last_time;
-    if (delta_time > 2) {
-      printf("delta time %li\n", delta_time);
-      last_time = t;
-      if (!step_high){
-        digitalWrite(PIN_STEP, HIGH);
-        step_high = 1;
-      }
-      else {
-        digitalWrite(PIN_STEP, LOW);
-        step_high = 0;
-      }
+  status = 1;
+  return status;
+}
+
+int stepper_update(void){
+  clock_gettime(CLOCK_REALTIME, &time_now);
+
+  ns = time_now.tv_nsec;
+  t = ns + time_now.tv_sec*BILLION;
+  delta_time = t - last_time;
+  half_period = (1/freq)*0.5
+  if (delta_time >= half_period) {
+    printf("delta time %li\n", delta_time);
+    last_time = t;
+    if (!step_high){
+      digitalWrite(PIN_STEP, HIGH);
+      step_high = 1;
+    }
+    else {
+      digitalWrite(PIN_STEP, LOW);
+      step_high = 0;
     }
   }
-  return 0;
+return 0;
+
 }
 /***************************************************************************/
 
-int stepper_init(){
-  printf("***stepper init done***");
-  // sets up the wiringPi library
-  if (wiringPiSetup () < 0) {
-    fprintf (stderr, "Unable to setup wiringPi: %s\n", strerror (errno));
-    return 1;
-  }
-
-  pinMode (PIN_DIR, OUTPUT) ;
-  pinMode (PIN_EN, OUTPUT) ;
-  pinMode (PIN_STEP, OUTPUT) ;
-
-
-  return 0;
+void stepper_quit(void)
+{
+	printf ("app_quit() in stepper_driver.c called\n");
 }
+
 
