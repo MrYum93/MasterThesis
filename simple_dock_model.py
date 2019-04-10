@@ -56,7 +56,7 @@ class ar_model(object):
         self.rope_k = 2000
 
         self.plane_mass = 0.7
-        self.plane_pos = np.array([0, -0.1, 0]) #The plane starts one meter before the docking station before it is hooked
+        self.plane_pos = np.array([0, -1.1, 0]) #The plane starts one meter before the docking station before it is hooked
         self.plane_vel = np.array([0, 10, 0])
         self.plane_acc = np.array([0, 0, 0])
         self.plane_displacement = 0
@@ -186,7 +186,13 @@ class ar_model(object):
     # linalg_r.astype(np.double)
     # tmp_r = np.around(math.acos(dot_r/linalg_r), decimals=13)
     # self.spring_r_ang_rope = tmp_r
-
+    
+    #Start med P controller -> PI -> PD -PID i den rækkefølge
+    #hvis de ikke accelere hurtigt nok er det PI, hvis de gør det for hurtigt vil et P led bremste det hele.
+    #Papers med lineære controllers til ulineære systemer
+    #Prøv at tegne loops op og se hvad der skal til
+    #Start med at antage at flyet har en hastighed vi kender"
+    #Der er måske et lineært forhold mellem rebets vinkel og armens, i forhold til hvo rmange newton der bliver trukket med.
     def plot_plane(self):
         '''
         x = time_list
@@ -698,7 +704,7 @@ class ar_model(object):
         self.theta_left = math.atan2(start_position_vector_left_arm[1], start_position_vector_left_arm[0])
         #Interactive plot
         if self.interactive:
-            plot = PlotSystem(-5, 5, -10, 10)
+            plot = PlotSystem(-7.5, 7.5, -7.5, 7.5)
         while self.time < 3:
             '''
             Description: This version introduces the two arms, but with no springs attached
