@@ -36,7 +36,7 @@ YYYY-MM-DD
 2018-04-02 MW First version
 '''
 
-#import
+# IMPORTS
 import csv
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -61,21 +61,26 @@ class SpeedOfMotor():
         time_old = 0
         deg_now = 0
         deg_old = 0
+        index_inc = 0
         speed_l = []
         time_l = []
         rev_l = []
-        for i in range(len(time[94500:-1])):# range(int((len(time)-1))):
-            index = i# + 94500
+        for i in range(len(time)-1):# range(int((len(time)-1))):
+            if tics[i] == 0:
+                index_inc = i
+                continue
+            index = i + index_inc
 
             tic_i = tics[index] - tmp_tic
             if tic_i >= 1024:
                 tmp_tic = tics[index]
                 time_now = time[index]
-                deg_now = tics[index]
+                deg_now = tics[index] * self.tick_deg
 
-                delta_time = time_old - time_now
-                delta_deg = deg_old - deg_now
+                delta_time = time_now - time_old
+                delta_deg = deg_now - deg_old
                 tics_speed = delta_deg/delta_time
+                print("deg on one turn: ", delta_deg)
                 # print("time", time[index])
                 # print("tics speed", tics_speed)# tics[index])
                 print("speed", tics_speed)
@@ -85,10 +90,15 @@ class SpeedOfMotor():
 
                 speed_l.append(tics_speed)#tics[index])
                 time_l.append(time[index])
+                # This is here to stop loop early if testing is needed
+                # if len(time_l) > 5:
+                #     break
+            if index == len(time)-5:
+                break
 
         fig = plt.figure()
         plt.xlabel('time')
-        plt.ylabel('speed')
+        plt.ylabel('deg/sec')
         plt.plot(time_l, speed_l, '-')
         plt.show()
 

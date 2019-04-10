@@ -37,15 +37,15 @@ volatile int old_seq = 0;
 volatile int delta = 0;
 volatile int revolutions = 0;
 volatile char rev_flag = 0;
-volatile signed int dir = 0;  // either 1 [CW] or -1 [CCW]
+volatile signed int dir = 0;  // either 1 [CW], 0[NOTHING] or -1 [CCW]
 volatile signed long int tics = 0;
+volatile signed long int old_tics = 0;
+volatile float speed = 0;
 volatile long ms = 0;
-volatile long unsigned int t = 0;
+volatile long ms_last = 0;
+volatile long signed int t = 0;
+volatile long signed int t_last = 0;
 
-//struct timespec {
-//        time_t   tv_sec;        /* seconds */
-//        long     tv_nsec;       /* nanoseconds */
-//};
 
 
 // -------------------------------------------------------------------------
@@ -67,13 +67,15 @@ void zEvent(void) {
 // -------------------------------------------------------------------------
 // main
 int main(void) {
-  
+  // init main
+  printf("******init main*******\n");
+
   // sets up the wiringPi library
   if (wiringPiSetup () < 0) {
     fprintf (stderr, "Unable to setup wiringPi: %s\n", strerror (errno));
     return 1;
   }
-  
+
   // set all pins as input
   pinMode (PIN_A, INPUT) ;
   pinMode (PIN_B, INPUT) ;
@@ -102,22 +104,31 @@ int main(void) {
   }
   
   /* print header to file */
-  const char *header = "time,tics,rev";
+  const char *header = "time,tics,rev,speed";
   fprintf(f, "%s\n", header);
   
   struct timespec time_now;
+  struct timespec time_last;
 
+  clock_gettime(CLOCK_MONOTONIC, &time_last);
+  ms_last = round(time_last.tv_nsec / 1000000);
+  t_last = 1000 * time_last.tv_sec + ms_last;//time_now.tv_nsec;
+
+  int cnt = 0;
   while ( 1 ) {
-    seq = (A ^ B) | B << 1;  // get sequence according to documentation in drive
+/*    seq = (A ^ B) | B << 1;  // get sequence according to documentation in drive
     delta = (seq - old_seq) % 4;
     if (delta == 0){
       //No change
       tics = tics;
+      dir = 0;
     }
     else if (delta == 1){
       //CW
+      printf("one CW, %d\n", tics);
       tics += 1;
       dir = 1;
+      printf("after one CW, %d\n", tics);
     }
     else if (delta == 2){
       //skipped a single read so assume it goes same dir as previously two times
@@ -125,39 +136,111 @@ int main(void) {
     }
     else if (delta == 3){
       //CCW
+      printf("one CCW, %d", tics);
       tics -= 1;
       dir = -1;
+      printf("after one CCW, %d\n", tics);
     }
     // save last seq to compare
     old_seq = seq;
-    
+*/
+    seq = A << 1 | B;
+    if (seq != old_seq){
+    switch(seq)
+    {
+      case 0:
+ 	if (old_seq == 2){
+	  tics += 1;
+	  dir = 1;
+	}
+	else if (old_seq == 1){
+	  tics -= 1;
+	  dir = -1;
+        }
+      case 1:
+        if (old_seq == 3){
+          tics -= 1;
+	  dir = -1;
+        }
+        else if (old_seq == 0){
+          tics += 1;
+	  dir = 1;
+        }
+      case 3:
+	if (old_seq == 2){
+          tics -= 1;
+	  dir = -1;
+        }
+        else if (old_seq == 1){
+          tics += 1;
+	  dir = 1;
+        }
+      case 0b10:
+	if (old_seq == 3){
+          tics += 1;
+	  dir = 1;
+        }
+        else if (old_seq == 0){
+          tics -= 1;
+	  dir = -1;
+        }
+      default:
+	tics = tics;
+    }
+}
+    old_seq = seq;
+
     // Check for home pos
     if (Z == 0 & rev_flag == 0){
-      printf("I am home now");
+      printf("I am home now, %d\n", revolutions);
       revolutions += dir;
       rev_flag = 1;
     }
-    else{
+    else if (Z == 1){
       rev_flag = 0;
     }
-    
+
     clock_gettime(CLOCK_MONOTONIC, &time_now);
     ms = round(time_now.tv_nsec / 1000000);
     t = 1000 * time_now.tv_sec + ms;//time_now.tv_nsec;
+//    t = time_now.tv_sec;
+/*
     //printf("time in EPOCH = %lu nanoseconds\n", (long unsigned int) t);
+    printf( "time: %d\n", t );
+    printf( "t_ol: %d\n", old_t );
+    printf( "dir : %d\n", dir );
+*/
 
-    
+//    printf( "t: %d\n", t );
+ //   printf( "t_last: %d\n", t_last );
+
+    //speed over 100ms
+    if (t >= t_last+100){
+      speed = (tics-old_tics) / (t-t_last); // t is in ms
+      printf( "Speed: %f\n", speed );
+      //printf( "tics: %d\n", tics );
+      old_tics = tics;
+      //update the new comparison
+      clock_gettime(CLOCK_MONOTONIC, &time_last);
+      ms_last = round(time_last.tv_nsec / 1000000);
+      t_last = 1000 * time_last.tv_sec + ms_last;//time_now.tv_nsec;
+    }
+    else {
+      speed = speed;
+    }
+
     // print the tics and revolutions
-    fprintf(f, "%u,%d,%d\n", t, tics, revolutions);
+    fprintf(f, "%u,%d,%d,%f\n", t, tics, revolutions, speed);
 
-    
-   /* printf( "%d\n", A );
-    printf( "%d\n", B );
-    printf( "%d\n", Z );*/
-    printf("tics: %d\n", tics);
-    //delay( 200 ); // wait 0.2 second
+    // Update variables
+    cnt += 1;
+/*
+    clock_gettime(CLOCK_MONOTONIC, &time_last);
+    ms_last = round(time_last.tv_nsec / 1000000);
+    t_last = 1000 * time_last.tv_sec + ms_last;//time_now.tv_nsec;
+*/
   }
-  
+
   fclose(f);
 
   return 0;

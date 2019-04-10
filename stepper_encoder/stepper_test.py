@@ -21,6 +21,7 @@ t = time.time()
 
 file = open("/home/pi/stepper_encoder_test/stepper_data.txt", "w")
 file.write("time, freq")
+# We can maybe do a PWM signal on the enable pin to decrease the power of the motor
 while True:
     t = str(datetime.datetime.now().time())
     hours, min, sec = t.split(':')
@@ -32,7 +33,7 @@ while True:
     time.sleep(1/(freq*2))
 
     if faster_cnt >= 500:
-        freq += 100.0
+        #freq += 100.0
         print('FASTER with freq: ', freq)
         faster_cnt = 0
     
