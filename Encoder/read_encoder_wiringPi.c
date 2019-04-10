@@ -133,59 +133,60 @@ int enc_init(int argc, char **argv) {
 }
 
 void enc_quit(void) {
+  fclose(f);
 	printf ("enc_quit() in read_encoder_wiringPi.c called\n");
 }
 
 // -------------------------------------------------------------------------
 // main
 int enc_main(void) {
+  update_cnt++;
+  if(update_cnt % 1000 == 0){
+    
+    seq = A << 1 | B;
+    if (seq != old_seq){
 
-  int cnt = 0;
-  seq = A << 1 | B;
-  if (seq != old_seq){
-
-  switch(seq)
-  {
-    case 0:
-   	if (old_seq == 2){
-	    tics += 1;
-	    dir = 1;
-	  }
-	  else if (old_seq == 1){
-	    tics -= 1;
-	    dir = -1;
-    }
-    case 1:
-      if (old_seq == 3){
-        tics -= 1;
-    	  dir = -1;
-      }
-      else if (old_seq == 0){
-        tics += 1;
-	      dir = 1;
-      }
-    case 3:
-	    if (old_seq == 2){
-        tics -= 1;
-	      dir = -1;
-      }
-      else if (old_seq == 1){
-        tics += 1;
-	      dir = 1;
-      }
-      case 0b10:
-	if (old_seq == 3){
+      switch(seq){
+        case 0:
+        if (old_seq == 2){
           tics += 1;
-	  dir = 1;
+          dir = 1;
         }
-        else if (old_seq == 0){
+        else if (old_seq == 1){
           tics -= 1;
-	  dir = -1;
+          dir = -1;
         }
-      default:
-	  tics = tics;
+        case 1:
+          if (old_seq == 3){
+            tics -= 1;
+            dir = -1;
+          }
+          else if (old_seq == 0){
+            tics += 1;
+            dir = 1;
+          }
+        case 3:
+          if (old_seq == 2){
+            tics -= 1;
+            dir = -1;
+          }
+          else if (old_seq == 1){
+            tics += 1;
+            dir = 1;
+          }
+        case 0b10:
+          if (old_seq == 3){
+            tics += 1;
+            dir = 1;
+          }
+          else if (old_seq == 0){
+            tics -= 1;
+            dir = -1;
+          }
+          default:
+            tics = tics;
+      }
     }
-}
     old_seq = seq;
 
     // Check for home pos
@@ -201,16 +202,16 @@ int enc_main(void) {
     clock_gettime(CLOCK_MONOTONIC, &time_now);
     ms = round(time_now.tv_nsec / 1000000);
     t = 1000 * time_now.tv_sec + ms;//time_now.tv_nsec;
-//    t = time_now.tv_sec;
-/*
-    //printf("time in EPOCH = %lu nanoseconds\n", (long unsigned int) t);
-    printf( "time: %d\n", t );
-    printf( "t_ol: %d\n", old_t );
-    printf( "dir : %d\n", dir );
-*/
+  //  t = time_now.tv_sec;
+  /*
+      //printf("time in EPOCH = %lu nanoseconds\n", (long unsigned int) t);
+      printf( "time: %d\n", t );
+      printf( "t_ol: %d\n", old_t );
+      printf( "dir : %d\n", dir );
+  */
 
-//    printf( "t: %d\n", t );
- //   printf( "t_last: %d\n", t_last );
+  //    printf( "t: %d\n", t );
+  //   printf( "t_last: %d\n", t_last );
 
     //speed over 100ms
     if (t >= t_last+100){
@@ -231,15 +232,12 @@ int enc_main(void) {
     fprintf(f, "%u,%d,%d,%f\n", t, tics, revolutions, speed);
 
     // Update variables
-    cnt += 1;
-/*
-    clock_gettime(CLOCK_MONOTONIC, &time_last);
-    ms_last = round(time_last.tv_nsec / 1000000);
-    t_last = 1000 * time_last.tv_sec + ms_last;//time_now.tv_nsec;
-*/
+  /*
+      clock_gettime(CLOCK_MONOTONIC, &time_last);
+      ms_last = round(time_last.tv_nsec / 1000000);
+      t_last = 1000 * time_last.tv_sec + ms_last;//time_now.tv_nsec;
+  */
+ 
   }
-
-  fclose(f);
-
   return 0;
 }
