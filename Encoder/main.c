@@ -48,6 +48,7 @@
 /* application includes */
 
 #include "app.h"
+#include "read_encoder_wiringPi.h"
 
 /***************************************************************************/
 /* global variables */
@@ -63,7 +64,7 @@ void nullhandler(int signo)
 static void quit () /* do not add void here */
 {
 	/* perform application cleanup */
-	app_quit();
+	enc_quit();
 
 	/* exit */
 	exit (EXIT_SUCCESS);
@@ -112,14 +113,14 @@ int main (int argc, char **argv)
 	{
 		printf("***SCHED***");
 		/* initialize application */
-		if (app_init(argc, argv) == APP_INIT_OK)
+		if enc(_init(argc, argv) == ENC_INIT_OK)
 		{
 			int stop = false;
 
 			while (! stop)
 			{
 				/* update application */
-				stop = app_update();
+				stop = enc_update();
 
 				/* suspend until next event */
 				sigsuspend(&wait_mask);

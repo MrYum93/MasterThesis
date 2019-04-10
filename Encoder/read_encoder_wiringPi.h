@@ -55,3 +55,43 @@
 #define SCHED_INTERVAL 			1e3; /* in microsec */
 
 #define ENC_INIT_OK				0
+
+#define PIN_A                   27
+#define PIN_B                   24
+#define PIN_Z                   23
+#define BILLION                 1000000000L
+
+/***************************************************************************/
+/* global variables */
+
+// the phases high=1, low=0
+volatile int A = 0;
+volatile int B = 0;
+volatile int Z = 1; // is always hihg unless it is at home pos
+volatile int seq = 0;
+volatile int old_seq = 0;
+volatile int delta = 0;
+volatile int revolutions = 0;
+volatile char rev_flag = 0;
+volatile signed int dir = 0;  // either 1 [CW], 0[NOTHING] or -1 [CCW]
+volatile signed long int tics = 0;
+volatile signed long int old_tics = 0;
+volatile float speed = 0;
+volatile long ms = 0;
+volatile long ms_last = 0;
+volatile long signed int t = 0;
+volatile long signed int t_last = 0;
+
+
+/***************************************************************************/
+/* function prototypes */
+
+int enc_init(int argc, char **argv);
+int enc_update(void);
+void enc_quit(void);
+void aEvent(void);
+void bEvent(void);
+void zEvent(void);
+
+
+/***************************************************************************/
