@@ -49,6 +49,7 @@
 
 /*#include "app.h"*/
 #include "read_encoder_wiringPi.h"
+#include "stepper_driver.h"
 
 /***************************************************************************/
 /* global variables */
@@ -64,6 +65,7 @@ static void quit () /* do not add void here */
 {
 	/* perform application cleanup */
 	enc_quit();
+  stepper_quit();
 
 	/* exit */
 	exit(EXIT_SUCCESS);
@@ -112,15 +114,18 @@ int main (int argc, char **argv)
 	{
 		printf("***SCHED***\n");
 		/* initialize application */
-		if (enc_init() == ENC_INIT_OK)
+		if ((enc_init() == ENC_INIT_OK) & 
+        (stepper_init() == STP_INIT_OK))
 		{
-			int stop = false;
+			int enc_stop = false;
+      int stp_stop = false;
 
-			while (! stop)
+			while ((!enc_stop) & (!stp_stop))
 			{
 				/* update application */
-				stop = enc_update();
-
+				enc_stop = enc_update();
+        stp_stop = stepper_update();
+        
 				/* suspend until next event */
 				sigsuspend(&wait_mask);
 			}
