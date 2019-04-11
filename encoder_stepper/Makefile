@@ -32,7 +32,7 @@
 
 BIN = .
 NAME = demo_encoder
-OBJECTS = main.o read_encoder_wiringPi.o
+OBJECTS = main.o read_encoder_wiringPi.o stepper_driver.o
 
 CC = gcc
 CFLAGS = -Wall -pedantic

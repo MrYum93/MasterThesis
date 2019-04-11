@@ -14,20 +14,20 @@
 
 /***************************************************************************/
 /* methods  */
-int stepper_init();
 
 /***************************************************************************/
 /* shared memory includes */
 
 /***************************************************************************/
 /* variables */
-volatile long long signed t = 0;
+volatile long signed t_stp = 0;
 volatile long signed ns = 0;
+unsigned long update_cnt;
 int step_high = 0;
 long int delta_time = 0;
-long long signed last_time = 0;
-long long int freq = 1000; /*Lets step a thousan times a second*/
-long long int half_period = 0;
+long signed last_time = 0;
+long int freq = 1000; /*Lets step a thousan times a second*/
+long int half_period = 0;
 int status = 1;
 struct timespec time_now;
 
@@ -36,7 +36,7 @@ struct timespec time_now;
 int stepper_init(void){
   printf("*****stepper init begin*****\n");
   
-  // sets up the wiringPi library
+  /* sets up the wiringPi library */
   /*if (wiringPiSetup () < 0) {
     fprintf (stderr, "Unable to setup wiringPi: %s\n", strerror (errno));
     return 1;
@@ -49,7 +49,7 @@ int stepper_init(void){
 
   clock_gettime(CLOCK_REALTIME, &time_now);
   ns = time_now.tv_nsec;
-  t = ns + time_now.tv_sec*BILLION;
+  t_stp = ns + time_now.tv_sec*BILLION;
   
   digitalWrite(PIN_DIR, HIGH);
   digitalWrite(PIN_EN, HIGH);
@@ -87,11 +87,11 @@ int stepper_update(void){
     if (!step_high){
         digitalWrite(PIN_STEP, HIGH);
         step_high = 1;
-      }
-      else {
+    }
+    else {
         digitalWrite(PIN_STEP, LOW);
         step_high = 0;
-      
+    }
   }
   return 0;
 }

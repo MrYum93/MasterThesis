@@ -78,8 +78,8 @@ volatile signed long int old_tics = 0;
 volatile float speed = 0;
 volatile long ms = 0;
 volatile long ms_last = 0;
-volatile long signed int t = 0;
-volatile long signed int t_last = 0;
+volatile long signed t = 0;
+volatile long signed t_last = 0;
 
 /* -------------------------------------------------------------------------
    myInterrupt:  called every time an event occurs */
@@ -114,18 +114,18 @@ int init_wiring(void){
   wiringPiISR (PIN_B, INT_EDGE_BOTH, &bEvent);
   wiringPiISR (PIN_Z, INT_EDGE_BOTH, &zEvent);*/
   if(wiringPiISR(PIN_B, INT_EDGE_BOTH, &bEvent) < 0 ) {
-    //fprintf (stderr, "Unable to setup ISR: %s\n", strerror (errno));
+    /*fprintf (stderr, "Unable to setup ISR: %s\n", strerror (errno));*/
     return 1;
   }
   printf("here1\n");
   if(wiringPiISR(PIN_A, INT_EDGE_BOTH, &aEvent) < 0 ) {
-    //fprintf (stderr, "Unable to setup ISR: %s\n", strerror (errno));
+    /*fprintf (stderr, "Unable to setup ISR: %s\n", strerror (errno));*/
     return 1;
   }
   printf("here2\n");
 
   if(wiringPiISR(PIN_Z, INT_EDGE_BOTH, &zEvent) < 0 ) {
-    //fprintf (stderr, "Unable to setup ISR: %s\n", strerror (errno));
+    /*fprintf (stderr, "Unable to setup ISR: %s\n", strerror (errno));*/
     return 1;
   }
   printf("here3\n");
@@ -135,24 +135,24 @@ int init_wiring(void){
 int enc_init(void) {
   /* init main */
   printf("******init read_encoder*******\n");
-  //init_wiring();
-  /* sets up the wiringPi library */
+  /*init_wiring();
+  sets up the wiringPi library */
   /*if (wiringPiSetup () < 0) {
     fprintf (stderr, "Unable to setup wiringPi: %s\n", strerror (errno));
     return 1;
-  }
+  }*/
 
   /* set all pins as input */
   /*pinMode (PIN_A, INPUT) ;
   pinMode (PIN_B, INPUT) ;
-  pinMode (PIN_Z, INPUT) ;
+  pinMode (PIN_Z, INPUT) ;*/
 
   /* set PINs to events generate an interrupt on high-to-low transitions
      and attach () to the interrupt */
   /*wiringPiISR (PIN_A, INT_EDGE_BOTH, &aEvent);
   wiringPiISR (PIN_B, INT_EDGE_BOTH, &bEvent);
   wiringPiISR (PIN_Z, INT_EDGE_BOTH, &zEvent);*/
-  
+
   /*if (wiringPiISR(PIN_B, INT_EDGE_BOTH, &bEvent) < 0 ) {
     fprintf (stderr, "Unable to setup ISR: %s\n", strerror (errno));
     return 1;
@@ -176,11 +176,11 @@ int enc_init(void) {
     printf("Error opening txt file!\n");
     exit(1);
   }
-  
+
   /* print header to file */
   const char *header = "time,tics,rev,speed";
   fprintf(f, "%s\n", header);
-  
+
   clock_gettime(CLOCK_MONOTONIC, &time_last);
   ms_last = round(time_last.tv_nsec / 1000000);
   t_last = 1000 * time_last.tv_sec + ms_last;/*time_now.tv_nsec;*/

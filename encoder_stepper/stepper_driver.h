@@ -27,7 +27,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 # ****************************************************************************
-# This is a script containing all functions needed to pass RoVi1
+# This is a script containing all functions needed to pass RoVi1*/
 /* system includes */
 
 #include <stdlib.h>
@@ -46,11 +46,10 @@
 /***************************************************************************/
 /* Pin defines */
 
-#define PIN_EN      16  //The purple wire is Enable (pin 10) (wpi 16)
-#define PIN_DIR     1   //The green wire is direction (pin 11) (wpi 0)
-#define PIN_STEP    0   //The grey wire is step (pin 12) (wpi 1)
-                        //The black wire is ground (pin 9)
-#define BILLION     1000000000L;
+#define PIN_EN      16  /*The purple wire is Enable (pin 10) (wpi 16)*/
+#define PIN_DIR     1   /*The green wire is direction (pin 11) (wpi 0)*/
+#define PIN_STEP    0   /*The grey wire is step (pin 12) (wpi 1)*/
+                        /*The black wire is ground (pin 9)*/
 
 /***************************************************************************/
 /* global variables */
