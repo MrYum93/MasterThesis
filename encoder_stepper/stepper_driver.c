@@ -23,6 +23,11 @@
 volatile long signed t_stp = 0;
 volatile long signed ns = 0;
 unsigned long update_cnt;
+unsigned long update_target;
+unsigned long last_target_freq;
+unsigned long last_duty_cycle;
+unsigned long duty_cnt = 0;
+unsigned long end_of_duty;
 int step_high = 0;
 long int delta_time = 0;
 long signed last_time = 0;
@@ -62,11 +67,39 @@ int stepper_init(void){
   return status;
 }
 
-int stepper_update(void){
-  update_cnt++;
+int stepper_update(int target_freq, int duty_cycle){
+  
   /* The freq is 10000Hz*//*and 1/100 is 100Hz */
   /* Since it sleeps half the time, it has only half freq*/
-  if(update_cnt % (100) == 0){
+  /*  10000/update_cnt = target_freq <=> update_cnt = (10000/target_freq)/2         */
+  //Maybe only do the calculation if the target freq has changed to a new value
+  
+  if (last_) {
+    /* code */
+  }
+  
+  update_target = (10000/target_freq);
+  end_of_duty = (update_target /100)*duty_cycle;
+  if (update_cnt == 0) {
+    step_high = 1;
+  }
+ 
+  if (update_cnt >= end_of_duty){
+    step_high = 0;
+  }
+
+  if (step_high == 1){ //Start of duty cycle
+    digitalWrite(PIN_STEP, HIGH);    
+  }
+  else { //end of duty cycle
+    digitalWrite(PIN_STEP, LOW); 
+  }
+
+  update_cnt++;
+  if(update_cnt >= update_target){
+    update_cnt = 0;
+  }
+    
     /*clock_gettime(CLOCK_REALTIME, &time_now);
     ns = time_now.tv_nsec;
     t = ns + time_now.tv_sec*BILLION;
@@ -83,7 +116,7 @@ int stepper_update(void){
         digitalWrite(PIN_STEP, LOW);
         step_high = 0;
       }
-    }*/
+    }
     if (!step_high){
         digitalWrite(PIN_STEP, HIGH);
         step_high = 1;
@@ -92,7 +125,9 @@ int stepper_update(void){
         digitalWrite(PIN_STEP, LOW);
         step_high = 0;
     }
-  }
+    */
+   
+  
   return 0;
 }
 /***************************************************************************/
