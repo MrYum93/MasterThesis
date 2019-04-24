@@ -29,6 +29,7 @@ unsigned long last_duty_cycle;
 unsigned long duty_cnt = 0;
 unsigned long end_of_duty;
 int step_high = 0;
+int last_step_high;
 long int delta_time = 0;
 long signed last_time = 0;
 long int freq = 1000; /*Lets step a thousan times a second*/
@@ -74,12 +75,14 @@ int stepper_update(int target_freq, int duty_cycle){
   /*  10000/update_cnt = target_freq <=> update_cnt = (10000/target_freq)/2         */
   //Maybe only do the calculation if the target freq has changed to a new value
   
-  if (last_) {
-    /* code */
+  if (last_target_freq != target_freq || last_duty_cycle != duty_cycle) {
+    update_target = (10000/target_freq);
+    last_duty_cycle = duty_cycle;
+    end_of_duty = (update_target /100)*duty_cycle;
+    last_target_freq = target_freq;  
   }
   
-  update_target = (10000/target_freq);
-  end_of_duty = (update_target /100)*duty_cycle;
+  
   if (update_cnt == 0) {
     step_high = 1;
   }
@@ -88,13 +91,17 @@ int stepper_update(int target_freq, int duty_cycle){
     step_high = 0;
   }
 
-  if (step_high == 1){ //Start of duty cycle
-    digitalWrite(PIN_STEP, HIGH);    
+  if (step_high != last_step_high) {
+    if (step_high == 1){ //Start of duty cycle
+      digitalWrite(PIN_STEP, HIGH);    
+    }
+    else { //end of duty cycle
+      digitalWrite(PIN_STEP, LOW); 
+    }
+    last_step_high = step_high;
   }
-  else { //end of duty cycle
-    digitalWrite(PIN_STEP, LOW); 
-  }
-
+  
+  
   update_cnt++;
   if(update_cnt >= update_target){
     update_cnt = 0;
