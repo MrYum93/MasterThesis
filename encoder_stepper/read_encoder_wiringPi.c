@@ -61,7 +61,7 @@
 /* variables */
 /* the phases high=1, low=0 */
 FILE *f;
-unsigned long update_cnt;
+unsigned long update_cnt_enc;
 struct timespec time_now;
 struct timespec time_last;
 volatile int A = 0;
@@ -117,18 +117,18 @@ int init_wiring(void){
     /*fprintf (stderr, "Unable to setup ISR: %s\n", strerror (errno));*/
     return 1;
   }
-  printf("here1\n");
+  /*printf("here1\n");*/
   if(wiringPiISR(PIN_A, INT_EDGE_BOTH, &aEvent) < 0 ) {
     /*fprintf (stderr, "Unable to setup ISR: %s\n", strerror (errno));*/
     return 1;
   }
-  printf("here2\n");
+  /*printf("here2\n");*/
 
   if(wiringPiISR(PIN_Z, INT_EDGE_BOTH, &zEvent) < 0 ) {
     /*fprintf (stderr, "Unable to setup ISR: %s\n", strerror (errno));*/
     return 1;
   }
-  printf("here3\n");
+  /*printf("here3\n");*/
 
 }
 
@@ -200,10 +200,10 @@ void enc_quit(void) {
 // -------------------------------------------------------------------------
 // main
 int enc_update(void) {
-  update_cnt++;
+  update_cnt_enc++;
   /*printf("update_cnt\n");*/
   /*The freq is 2000Hz*//*and 1/50 of 2000Hz is */
-  if(update_cnt % (1) == 0){
+  if(update_cnt_enc % (1) == 0){
     seq = (A ^ B) | B << 1;  // get sequence according to documentation in drive
     delta = (seq - old_seq) % 4;
     if (delta == 0){

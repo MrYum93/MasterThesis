@@ -22,7 +22,7 @@
 /* variables */
 volatile long signed t_stp = 0;
 volatile long signed ns = 0;
-unsigned long update_cnt;
+unsigned long update_cnt_stp;
 unsigned long update_target;
 unsigned long last_target_freq;
 unsigned long last_duty_cycle;
@@ -75,6 +75,8 @@ int stepper_update(int target_freq, int duty_cycle){
   /*  10000/update_cnt = target_freq <=> update_cnt = (10000/target_freq)/2         */
   //Maybe only do the calculation if the target freq has changed to a new value
   
+  printf("step high %d\n",step_high);
+
   if (last_target_freq != target_freq || last_duty_cycle != duty_cycle) {
     update_target = (10000/target_freq);
     last_duty_cycle = duty_cycle;
@@ -83,15 +85,15 @@ int stepper_update(int target_freq, int duty_cycle){
   }
   
   
-  if (update_cnt == 0) {
+  if (update_cnt_stp == 0) {
     step_high = 1;
   }
  
-  if (update_cnt >= end_of_duty){
+  if (update_cnt_stp >= end_of_duty){
     step_high = 0;
   }
 
-  if (step_high != last_step_high) {
+  //if (step_high != last_step_high) {
     if (step_high == 1){ //Start of duty cycle
       digitalWrite(PIN_STEP, HIGH);    
     }
@@ -99,12 +101,12 @@ int stepper_update(int target_freq, int duty_cycle){
       digitalWrite(PIN_STEP, LOW); 
     }
     last_step_high = step_high;
-  }
+  //}
   
   
-  update_cnt++;
-  if(update_cnt >= update_target){
-    update_cnt = 0;
+  update_cnt_stp+=1;
+  if(update_cnt_stp >= update_target){
+    update_cnt_stp = 0;
   }
     
     /*clock_gettime(CLOCK_REALTIME, &time_now);

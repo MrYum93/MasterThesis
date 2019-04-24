@@ -58,7 +58,7 @@
 /* function prototypes */
 
 int stepper_init(void);
-int stepper_update(void);
+int stepper_update(int target_freq, int duty_cycle);
 void stepper_quit(void);
 
 /***************************************************************************/

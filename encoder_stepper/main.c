@@ -114,18 +114,18 @@ int main (int argc, char **argv)
 	{
 		printf("***SCHED***\n");
 		/* initialize application */
-		if ((enc_init() == ENC_INIT_OK) & 
-        (stepper_init() == STP_INIT_OK))
+		if ((enc_init() == ENC_INIT_OK) &
+       		    (stepper_init() == STP_INIT_OK))
 		{
 			int enc_stop = false;
-      int stp_stop = false;
+		        int stp_stop = false;
 
 			while ((!enc_stop) & (!stp_stop))
 			{
 				/* update application */
 				enc_stop = enc_update();
-        stp_stop = stepper_update();
-        
+			        stp_stop = stepper_update(100, 99);
+
 				/* suspend until next event */
 				sigsuspend(&wait_mask);
 			}
