@@ -66,8 +66,10 @@ struct timespec time_now;
 struct timespec time_last;
 volatile int A = 0;
 volatile int B = 0;
-volatile int prev_A = 0;
-volatile int prev_B = 0;
+volatile int re_A = 0;
+volatile int re_B = 0;
+volatile int fe_A = 0;
+volatile int fe_B = 0;
 volatile int Z = 1; /* is always hihg unless it is at home pos*/
 volatile int seq = 0;
 volatile int old_seq = 0;
@@ -82,17 +84,31 @@ volatile long ms = 0;
 volatile long ms_last = 0;
 volatile long signed t = 0;
 volatile long signed t_last = 0;
+int state = 0;
 
 /* -------------------------------------------------------------------------
    myInterrupt:  called every time an event occurs */
 void aEvent(void) {
-  prev_A = A;
   A = digitalRead(PIN_A);
+  if (A == 0){
+    fe_A == 1;
+  }
+  else
+  {
+    re_A == 1;
+  }
+  
 }
 
 void bEvent(void) {
-  prev_B = B;
   B = digitalRead(PIN_B);
+  if (B == 0){
+    fe_B == 1;
+  }
+  else
+  {
+    re_B == 1;
+  }
 }
 
 /* is high all the time except in home pos */
@@ -112,14 +128,14 @@ int init_wiring(void){
   pinMode (PIN_B, INPUT) ;
   pinMode (PIN_Z, INPUT) ;
 
-  /* set PINs to events generate an interrupt on high-to-low transitions
+   set PINs to events generate an interrupt on high-to-low transitions
      and attach () to the interrupt */
-  /*wiringPiISR (PIN_A, INT_EDGE_BOTH, &aEvent);
+  wiringPiISR (PIN_A, INT_EDGE_BOTH, &aEvent);
   wiringPiISR (PIN_B, INT_EDGE_BOTH, &bEvent);
   wiringPiISR (PIN_Z, INT_EDGE_BOTH, &zEvent);*/
-  /*
+  
   if(wiringPiISR(PIN_B, INT_EDGE_BOTH, &bEvent) < 0 ) {
-    /*fprintf (stderr, "Unable to setup ISR: %s\n", strerror (errno));
+    fprintf (stderr, "Unable to setup ISR: %s\n", strerror (errno));
     return 1;
   }
   printf("here1\n");
@@ -134,12 +150,36 @@ int init_wiring(void){
     return 1;
   }
   printf("here3\n");
-*/
+
 }
 
 int enc_init(void) {
   /* init main */
   printf("******init read_encoder*******\n");
+  A = digitalRead(PIN_A);
+  
+  B = digitalRead(PIN_B);
+
+  if (A == 1){
+    if (B== 0){
+      state = 0;
+    }
+    else
+    {
+      state = 1
+    }
+  }
+
+  if (A == 0){
+    if (B == 0){
+      state = 3;
+    }
+    else
+    {
+      state = 2
+    }
+  }
+
   /*init_wiring();
   sets up the wiringPi library */
   /*if (wiringPiSetup () < 0) {
@@ -174,26 +214,26 @@ int enc_init(void) {
     return 1;
   }
   printf("here3\n");
-*/
+
   f = fopen("../data_for_git/encoder_data.txt", "w");
   if (f == NULL)
   {
     printf("Error opening txt file!\n");
     exit(1);
   }
-
-  /* print header to file */
+  */
+  /* print header to file 
   const char *header = "time,tics,rev,speed";
   fprintf(f, "%s\n", header);
 
   clock_gettime(CLOCK_MONOTONIC, &time_last);
   ms_last = round(time_last.tv_nsec / 1000000);
-  t_last = 1000 * time_last.tv_sec + ms_last;/*time_now.tv_nsec;*/
+  t_last = 1000 * time_last.tv_sec + ms_last;/*time_now.tv_nsec;
 
   int status = ENC_INIT_OK;
 
   printf ("enc_init() in read_encoder_wiringPi.c called\n");
-
+  */
   return status;
 }
 
@@ -205,6 +245,69 @@ void enc_quit(void) {
 // -------------------------------------------------------------------------
 // main
 int enc_update(void) {
+
+
+  switch (state)
+  {
+    case 0:
+      if (re_B == 1) {
+        tics++;
+        re_B = 0;
+        state = 1;
+      }
+      else if (fe_A == 1) {
+        tics--
+        fe_A = 0;
+        state = 3;
+      }
+      break;
+    
+    case 1:
+      if (fe_A == 1) {
+        tics++;
+        fe_A = 0;
+        state = 2;
+      }
+      else if (fe_B == 1) {
+        tics--
+        fe_B = 0;
+        state = 0;
+      }
+      break;
+
+    case 2:
+      if (fe_B == 1) {
+        tics++;
+        fe_B = 0;
+        state = 3;
+      }
+      else if (re_A == 1) {
+        tics--
+        re_A = 0;
+        state = 1;
+      }
+      break;
+    
+    case 3:
+       if (re_A == 1) {
+        tics++;
+        re_A = 0;
+        state = 0;
+      }
+      else if (re_B == 1) {
+        tics--
+        re_B = 0;
+        state = 2;
+      }
+      break;
+  
+    default:
+      break;
+  }
+
+  prinf("state %d", state);
+
+  /*
   prev_A = A;
   A = digitalRead(PIN_A);
   prev_B = B;
@@ -241,7 +344,7 @@ int enc_update(void) {
     tics--;
   }
   
-  /*
+  
   update_cnt_enc++;
   /*printf("update_cnt\n");*/
   /*The freq is 2000Hz*//*and 1/50 of 2000Hz is */
