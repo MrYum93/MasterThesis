@@ -73,8 +73,8 @@ volatile int delta = 0;
 volatile int revolutions = 0;
 volatile char rev_flag = 0;
 volatile signed int dir = 0;  /* either 1[CW], 0[NOTHING] or -1[CCW]*/
-volatile signed long int tics = 0;
-volatile signed long int old_tics = 0;
+volatile signed long tics = 0;
+volatile signed long old_tics = 0;
 volatile float speed = 0;
 volatile long ms = 0;
 volatile long ms_last = 0;
@@ -204,7 +204,7 @@ int enc_update(void) {
   /*printf("update_cnt\n");*/
   /*The freq is 2000Hz*//*and 1/50 of 2000Hz is */
   if(update_cnt_enc % (1) == 0){
-    seq = (A ^ B) | B << 1;  // get sequence according to documentation in drive
+/*    seq = (A ^ B) | B << 1;  // get sequence according to documentation in drive
     delta = (seq - old_seq) % 4;
     if (delta == 0){
       //No change
@@ -231,7 +231,7 @@ int enc_update(void) {
     }
     // save last seq to compare
     old_seq = seq;
-/*
+
     seq = (A ^ B) | B << 1;  // get sequence according to documentation in drive
     delta = (seq - old_seq) % 4;
     switch(delta){
@@ -258,45 +258,46 @@ int enc_update(void) {
     // save last seq to compare
     old_seq = seq;
 */
-/*    seq = A << 1 | B;
-    //printf("seq, %d\n", seq);
+
+    seq = (A << 1) | B;
+    /*printf("seq, %d\n", seq);*/
     if (seq != old_seq){
       switch(seq){
         case 0:
         if (old_seq == 2){
-          tics += 1;
-          dir = 1;
-        }
-        else if (old_seq == 1){
           tics -= 1;
           dir = -1;
         }
+        else if (old_seq == 1){
+          tics += 1;
+          dir = 1;
+        }
         case 1:
           if (old_seq == 3){
-            tics -= 1;
-            dir = -1;
-          }
-          else if (old_seq == 0){
             tics += 1;
             dir = 1;
+          }
+          else if (old_seq == 0){
+            tics -= 1;
+            dir = -1;
           }
         case 3:
           if (old_seq == 2){
-            tics -= 1;
-            dir = -1;
-          }
-          else if (old_seq == 1){
             tics += 1;
             dir = 1;
+          }
+          else if (old_seq == 1){
+            tics -= 1;
+            dir = -1;
           }
         case 2:
           if (old_seq == 3){
-            tics += 1;
-            dir = 1;
-          }
-          else if (old_seq == 0){
             tics -= 1;
             dir = -1;
+          }
+          else if (old_seq == 0){
+            tics += 1;
+            dir = +1;
           }
           default:
             tics = tics;
@@ -304,7 +305,7 @@ int enc_update(void) {
       }
     }
     old_seq = seq;
-*/
+
     // Check for home pos
     if ((Z == 0) & (rev_flag == 0)){
       printf("I am home now, %d\n", revolutions);

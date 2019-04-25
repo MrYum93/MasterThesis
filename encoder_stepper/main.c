@@ -119,8 +119,8 @@ int main (int argc, char **argv)
 		printf("***SCHED***\n");
 		/* initialize application */
 		if ((enc_init() == ENC_INIT_OK) &
-       		    (stepper_init() == STP_INIT_OK)) &
-							(controller_init() == CONTROLLER_INIT_OK)
+       		    (stepper_init() == STP_INIT_OK) &
+	            (controller_init() == CONTROLLER_INIT_OK))
 
 		{
 			int enc_stop = false;

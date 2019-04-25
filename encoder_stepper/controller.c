@@ -39,16 +39,14 @@ int controller_init(void){
 
   /****/
 
-  clock_gettime(CLOCK_REALTIME, &time_now);
+/*  clock_gettime(CLOCK_REALTIME, &time_now);
   ns = time_now.tv_nsec;
   t_stp = ns + time_now.tv_sec*BILLION;
-  
+*/
   /** Setup **/
   printf("***controller init done***\n");
-  
-  status = CONTROLLER_INIT_OK;
 
-  return status;
+  return CONTROLLER_INIT_OK;
 }
 
 int detect_slip(unsigned long enc_tics, unsigned long stp_tics){
@@ -60,10 +58,10 @@ int detect_slip(unsigned long enc_tics, unsigned long stp_tics){
 
 }
 
-int controller_update(unsigned long enc_tics, unsigned long stp_tics){
+int controller_update(signed long enc_tics, unsigned long stp_tics){
   
   detect_slip(enc_tics, stp_tics);
-  printf("Encoder pulses %ul, stepper pulses %ul\n", enc_tics, stp_tics);
+  printf("Encoder pulses %il, stepper pulses %ul\n", enc_tics, stp_tics);
 
   return 0;
 }

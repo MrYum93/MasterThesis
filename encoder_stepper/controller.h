@@ -58,7 +58,7 @@
 /* function prototypes */
 
 int controller_init(void);
-int controller_update(unsigned long enc_tics, unsigned long stp_tics);
+int controller_update(signed long enc_tics, unsigned long stp_tics);
 void controller_quit(void);
 
 /***************************************************************************/
