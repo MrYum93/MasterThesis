@@ -66,6 +66,8 @@ struct timespec time_now;
 struct timespec time_last;
 volatile int A = 0;
 volatile int B = 0;
+volatile int prev_A = 0;
+volatile int prev_B = 0;
 volatile int Z = 1; /* is always hihg unless it is at home pos*/
 volatile int seq = 0;
 volatile int old_seq = 0;
@@ -84,10 +86,12 @@ volatile long signed t_last = 0;
 /* -------------------------------------------------------------------------
    myInterrupt:  called every time an event occurs */
 void aEvent(void) {
+  prev_A = A;
   A = digitalRead(PIN_A);
 }
 
 void bEvent(void) {
+  prev_B = B;
   B = digitalRead(PIN_B);
 }
 
@@ -113,23 +117,24 @@ int init_wiring(void){
   /*wiringPiISR (PIN_A, INT_EDGE_BOTH, &aEvent);
   wiringPiISR (PIN_B, INT_EDGE_BOTH, &bEvent);
   wiringPiISR (PIN_Z, INT_EDGE_BOTH, &zEvent);*/
+  /*
   if(wiringPiISR(PIN_B, INT_EDGE_BOTH, &bEvent) < 0 ) {
-    /*fprintf (stderr, "Unable to setup ISR: %s\n", strerror (errno));*/
+    /*fprintf (stderr, "Unable to setup ISR: %s\n", strerror (errno));
     return 1;
   }
-  /*printf("here1\n");*/
+  printf("here1\n");
   if(wiringPiISR(PIN_A, INT_EDGE_BOTH, &aEvent) < 0 ) {
-    /*fprintf (stderr, "Unable to setup ISR: %s\n", strerror (errno));*/
+    fprintf (stderr, "Unable to setup ISR: %s\n", strerror (errno));
     return 1;
   }
-  /*printf("here2\n");*/
+  printf("here2\n");
 
   if(wiringPiISR(PIN_Z, INT_EDGE_BOTH, &zEvent) < 0 ) {
-    /*fprintf (stderr, "Unable to setup ISR: %s\n", strerror (errno));*/
+    fprintf (stderr, "Unable to setup ISR: %s\n", strerror (errno));
     return 1;
   }
-  /*printf("here3\n");*/
-
+  printf("here3\n");
+*/
 }
 
 int enc_init(void) {
@@ -200,10 +205,47 @@ void enc_quit(void) {
 // -------------------------------------------------------------------------
 // main
 int enc_update(void) {
+  prev_A = A;
+  A = digitalRead(PIN_A);
+  prev_B = B;
+  B = digitalRead(PIN_B);
+  if ((prev_B == 0) && (A == 1) && (B == 1) {
+    tics++;
+  }
+
+  if ((prev_A == 1) && (A == 0) && (B == 1) {
+    tics++;
+  }
+
+  if ((prev_B == 1) && (A == 0) && (B == 0) {
+    tics++;
+  }
+
+  if ((prev_A == 0) && (A == 1) && (B == 0) {
+    tics++;
+
+
+  if ((prev_A == 0) && (B == 1) && (A == 1) {
+    tics--;
+  }
+
+  if ((prev_B == 1) && (B == 0) && (A == 1) {
+    tics--;
+  }
+
+  if ((prev_A == 1) && (B == 0) && (A == 0) {
+    tics--;
+  }
+
+  if ((prev_B == 0) && (B == 1) && (A == 0) {
+    tics--;
+  }
+  
+  
   update_cnt_enc++;
   /*printf("update_cnt\n");*/
   /*The freq is 2000Hz*//*and 1/50 of 2000Hz is */
-  if(update_cnt_enc % (1) == 0){
+  /*if(update_cnt_enc % (1) == 0){
     seq = (A ^ B) | B << 1;  // get sequence according to documentation in drive
     delta = (seq - old_seq) % 4;
     if (delta == 0){
@@ -304,7 +346,7 @@ int enc_update(void) {
       }
     }
     old_seq = seq;
-*/
+
     // Check for home pos
     if ((Z == 0) & (rev_flag == 0)){
       printf("I am home now, %d\n", revolutions);
@@ -318,7 +360,7 @@ int enc_update(void) {
     clock_gettime(CLOCK_MONOTONIC, &time_now);
     ms = round(time_now.tv_nsec / 1000000);
     t = 1000 * time_now.tv_sec + ms;//time_now.tv_nsec;
-  /*  t = time_now.tv_sec;
+    t = time_now.tv_sec;
       //printf("time in EPOCH = %lu nanoseconds\n", (long unsigned int) t);
       printf( "time: %d\n", t );
       printf( "t_ol: %d\n", old_t );
@@ -326,8 +368,8 @@ int enc_update(void) {
 
     printf( "t: %ld\n", t );
     printf( "t_last: %ld\n", t_last );
-*/
-    /*speed over 100ms*/
+
+    /*speed over 100ms
     if (t >= t_last+100){
       speed = (tics-old_tics) / (t-t_last); // t is in ms
       //printf( "Speed: %f\n", speed );
@@ -342,10 +384,11 @@ int enc_update(void) {
     else {
       speed = speed;
     }
+    
 
     /* print the tics and revolutions
     fprintf(f, "%li,%ld,%d,%f\n", t, tics, revolutions, speed);
-*/
+
     /* Update variables */
     /*
     clock_gettime(CLOCK_MONOTONIC, &time_last);
@@ -353,6 +396,6 @@ int enc_update(void) {
     t_last = 1000 * time_last.tv_sec + ms_last;//time_now.tv_nsec;
     */
  
-  }
+  
   return tics;
 }
