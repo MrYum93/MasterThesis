@@ -241,13 +241,13 @@ int enc_update(void) {
     tics--;
   }
   
-  
+  /*
   update_cnt_enc++;
   /*printf("update_cnt\n");*/
   /*The freq is 2000Hz*//*and 1/50 of 2000Hz is */
-
+/*
   if(update_cnt_enc % (1) == 0){
-/*    seq = (A ^ B) | B << 1;  // get sequence according to documentation in drive
+    seq = (A ^ B) | B << 1;  // get sequence according to documentation in drive
   /*if(update_cnt_enc % (1) == 0){
     seq = (A ^ B) | B << 1;  // get sequence according to documentation in drive
     delta = (seq - old_seq) % 4;
@@ -304,8 +304,9 @@ int enc_update(void) {
     old_seq = seq;
 */
 
-    seq = (A << 1) | B;
+    /*seq = (A << 1) | B;
     /*printf("seq, %d\n", seq);*/
+    /*
     if (seq != old_seq){
       switch(seq){
         case 0:
@@ -350,7 +351,7 @@ int enc_update(void) {
       }
     }
     old_seq = seq;
-
+  
     // Check for home pos
     if ((Z == 0) & (rev_flag == 0)){
       printf("I am home now, %d\n", revolutions);
@@ -388,7 +389,7 @@ int enc_update(void) {
     else {
       speed = speed;
     }
-    
+    */
 
     /* print the tics and revolutions
     fprintf(f, "%li,%ld,%d,%f\n", t, tics, revolutions, speed);
@@ -398,8 +399,8 @@ int enc_update(void) {
     clock_gettime(CLOCK_MONOTONIC, &time_last);
     ms_last = round(time_last.tv_nsec / 1000000);
     t_last = 1000 * time_last.tv_sec + ms_last;//time_now.tv_nsec;
-    */
+    
  
-  
+  */
   return tics;
 }
