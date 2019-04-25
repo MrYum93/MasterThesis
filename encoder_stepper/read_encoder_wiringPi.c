@@ -354,5 +354,5 @@ int enc_update(void) {
     */
  
   }
-  return 0;
+  return tics;
 }
