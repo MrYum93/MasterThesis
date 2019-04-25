@@ -26,8 +26,8 @@
 struct timespec time_now;
 double theta_enc = 0;
 double theta_stp = 0;
-int state = 1;
-int stepper_freq = 0;
+int state_controller = 1;
+int stepper_freq = 100;
 int delta_vel = 10;
 unsigned long accelerate_cnt = 0;
 
@@ -65,26 +65,27 @@ int detect_slip(unsigned long enc_tics, unsigned long stp_tics){
 
 int controller_update(signed long enc_tics, unsigned long stp_tics){
   
-  switch (state)
+  switch (state_controller)
   {
     case 0: /*Standby state*/
       stepper_freq = 0;
       break;
     
     case 1: /*accelerate state*/
-      if (accelerate_cnt % 10000 == 0){
-        accelerate_cnt = 0;
-        stepper_freq += delta_vel;
-      }
       accelerate_cnt++;
+      if (accelerate_cnt % 20000 == 0){
+        accelerate_cnt = 0;
+        stepper_freq = stepper_freq;//delta_vel;
+        state_controller = 2;
+      }
       break;
     
     case 2: /*braking state*/
-      if (accelerate_cnt % 100 == 0 {
+      accelerate_cnt++;
+      if (accelerate_cnt % 1000 == 0) {
         stepper_freq -= delta_vel;
         accelerate_cnt = 0;
       }
-      accelerate_cnt++;
       break;
   
     default:

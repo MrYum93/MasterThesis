@@ -83,7 +83,7 @@ int stepper_update(int target_freq){
     last_target_freq = target_freq;  
   }
   
-  if (step_high & (pulses_cnt < 202)){
+  if (step_high){
     step_high = 0;
     digitalWrite(PIN_STEP, LOW);
     pulses_cnt++; 
