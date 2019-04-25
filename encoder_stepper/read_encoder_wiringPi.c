@@ -64,9 +64,9 @@ FILE *f;
 unsigned long update_cnt_enc;
 struct timespec time_now;
 struct timespec time_last;
-volatile char AB[] = "00"
-volatile char A = "0";
-volatile char B = "0";
+volatile char AB[] = 0b00;
+volatile char A = 0b0;
+volatile char B = 0b0;
 volatile int Z = 1; /* is always hihg unless it is at home pos*/
 volatile int seq = 0;
 volatile int old_seq = 0;
@@ -87,22 +87,22 @@ int state = 0;
    myInterrupt:  called every time an event occurs */
 void aEvent(void) {
   if (digitalRead(PIN_A)){
-    A = "1";
+    A = 0b1;
   }
   else
   {
-    A = "0";
+    A = 0b0;
   }
   
 }
 
 void bEvent(void) {
   if (digitalRead(PIN_B)){
-    B = "1";
+    B = 0b1;
   }
   else
   {
-    B = "0";
+    B = 0b0;
   }
 }
 
@@ -185,8 +185,9 @@ int enc_init(void) {
     return 1;
   }
 
-  AB = A + B;
-
+  AB = (0b1 << 1) | 0b1;
+  printf(AB)
+  exit()
 /*
   f = fopen("../data_for_git/encoder_data.txt", "w");
   if (f == NULL)
