@@ -64,12 +64,11 @@ FILE *f;
 unsigned long update_cnt_enc;
 struct timespec time_now;
 struct timespec time_last;
-volatile int A = 0;
-volatile int B = 0;
-volatile int re_A = 0;
-volatile int re_B = 0;
-volatile int fe_A = 0;
-volatile int fe_B = 0;
+volatile int AB = 0b00;
+volatile int last_AB = 0b00;
+volatile int sum = 0b0000;
+volatile int A = 0b0;
+volatile int B = 0b0;
 volatile int Z = 1; /* is always hihg unless it is at home pos*/
 volatile int seq = 0;
 volatile int old_seq = 0;
@@ -89,26 +88,51 @@ int state = 0;
 /* -------------------------------------------------------------------------
    myInterrupt:  called every time an event occurs */
 void aEvent(void) {
-  A = digitalRead(PIN_A);
-  if (A == 0){
-    fe_A == 1;
+  if (digitalRead(PIN_A)){
+    A = 0b1;
   }
   else
   {
-    re_A == 1;
+    A = 0b0;
   }
+  AB = (A << 1) | B;
+  sum = (last_AB << 2) | AB;
+
+  if(sum == 0b1101 || sum == 0b0100 ||
+     sum == 0b0010 || sum == 0b1011){
+    tics++;
+  }
+  if(sum == 0b1110 || sum == 0b0111 ||
+     sum == 0b0001 || sum == 0b1000){
+    tics--;
+  }
+
+  last_AB = AB;
   
 }
 
 void bEvent(void) {
-  B = digitalRead(PIN_B);
-  if (B == 0){
-    fe_B == 1;
+  if (digitalRead(PIN_B)){
+    B = 0b1;
   }
   else
   {
-    re_B == 1;
+    B = 0b0;
   }
+  AB = (A << 1) | B;
+  sum = (last_AB << 2) | AB;
+
+  if(sum == 0b1101 || sum == 0b0100 ||
+     sum == 0b0010 || sum == 0b1011){
+    tics++;
+  }
+  if(sum == 0b1110 || sum == 0b0111 ||
+     sum == 0b0001 || sum == 0b1000){
+    tics--;
+  }
+
+  last_AB = AB;
+  
 }
 
 /* is high all the time except in home pos */
@@ -128,57 +152,30 @@ int init_wiring(void){
   pinMode (PIN_B, INPUT) ;
   pinMode (PIN_Z, INPUT) ;
 
-   set PINs to events generate an interrupt on high-to-low transitions
+  /* set PINs to events generate an interrupt on high-to-low transitions
      and attach () to the interrupt */
-  wiringPiISR (PIN_A, INT_EDGE_BOTH, &aEvent);
-  wiringPiISR (PIN_B, INT_EDGE_BOTH, &bEvent);
-  wiringPiISR (PIN_Z, INT_EDGE_BOTH, &zEvent);*/
-  
-  if(wiringPiISR(PIN_B, INT_EDGE_BOTH, &bEvent) < 0 ) {
-    fprintf (stderr, "Unable to setup ISR: %s\n", strerror (errno));
-    return 1;
-  }
-  printf("here1\n");
+
+
   if(wiringPiISR(PIN_A, INT_EDGE_BOTH, &aEvent) < 0 ) {
     fprintf (stderr, "Unable to setup ISR: %s\n", strerror (errno));
     return 1;
   }
-  printf("here2\n");
+
+  if(wiringPiISR(PIN_B, INT_EDGE_BOTH, &bEvent) < 0 ) {
+    fprintf (stderr, "Unable to setup ISR: %s\n", strerror (errno));
+    return 1;
+  }
 
   if(wiringPiISR(PIN_Z, INT_EDGE_BOTH, &zEvent) < 0 ) {
     fprintf (stderr, "Unable to setup ISR: %s\n", strerror (errno));
     return 1;
   }
-  printf("here3\n");
 
 }
 
 int enc_init(void) {
   /* init main */
   printf("******init read_encoder*******\n");
-  A = digitalRead(PIN_A);
-  
-  B = digitalRead(PIN_B);
-
-  if (A == 1){
-    if (B== 0){
-      state = 0;
-    }
-    else
-    {
-      state = 1
-    }
-  }
-
-  if (A == 0){
-    if (B == 0){
-      state = 3;
-    }
-    else
-    {
-      state = 2
-    }
-  }
 
   /*init_wiring();
   sets up the wiringPi library */
@@ -198,23 +195,12 @@ int enc_init(void) {
   wiringPiISR (PIN_B, INT_EDGE_BOTH, &bEvent);
   wiringPiISR (PIN_Z, INT_EDGE_BOTH, &zEvent);*/
 
-  /*if (wiringPiISR(PIN_B, INT_EDGE_BOTH, &bEvent) < 0 ) {
-    fprintf (stderr, "Unable to setup ISR: %s\n", strerror (errno));
-    return 1;
-  }
-  printf("here1\n");
-  if (wiringPiISR(PIN_A, INT_EDGE_BOTH, &aEvent) < 0 ) {
-    fprintf (stderr, "Unable to setup ISR: %s\n", strerror (errno));
-    return 1;
-  }
-  printf("here2\n");
-
-  if (wiringPiISR(PIN_Z, INT_EDGE_BOTH, &zEvent) < 0 ) {
-    fprintf (stderr, "Unable to setup ISR: %s\n", strerror (errno));
-    return 1;
-  }
-  printf("here3\n");
-
+  AB = (A << 1) | B;
+/*
+  printf("%d\n", AB);
+  exit(0);
+*/
+/*
   f = fopen("../data_for_git/encoder_data.txt", "w");
   if (f == NULL)
   {
@@ -234,7 +220,7 @@ int enc_init(void) {
 
   printf ("enc_init() in read_encoder_wiringPi.c called\n");
   */
-  return status;
+  return ENC_INIT_OK;
 }
 
 void enc_quit(void) {
@@ -247,65 +233,46 @@ void enc_quit(void) {
 int enc_update(void) {
 
 
-  switch (state)
+/*
+  switch (AB)
   {
-    case 0:
-      if (re_B == 1) {
-        tics++;
-        re_B = 0;
-        state = 1;
+    case 0b00:
+      if (B == 0b1) {
+        tics--;
       }
-      else if (fe_A == 1) {
-        tics--
-        fe_A = 0;
-        state = 3;
+      else if (A == 0b1) {
+        tics++;
       }
       break;
-    
-    case 1:
-      if (fe_A == 1) {
-        tics++;
-        fe_A = 0;
-        state = 2;
+    case 0b01:
+      if (A == 0b1) {
+        tics--;
       }
-      else if (fe_B == 1) {
-        tics--
-        fe_B = 0;
-        state = 0;
+     else if (B == 0b0) {
+        tics++;
       }
       break;
-
-    case 2:
-      if (fe_B == 1) {
-        tics++;
-        fe_B = 0;
-        state = 3;
+    case 0b11:
+      if (B == 0b0) {
+        tics--;
       }
-      else if (re_A == 1) {
-        tics--
-        re_A = 0;
-        state = 1;
+      if (A == 0b0) {
+        tics++;
       }
       break;
-    
-    case 3:
-       if (re_A == 1) {
+    case 0b10:
+       if (A == 0b0) {
+        tics--;
+        }
+      if (B == 0b1) {
         tics++;
-        re_A = 0;
-        state = 0;
-      }
-      else if (re_B == 1) {
-        tics--
-        re_B = 0;
-        state = 2;
-      }
+        }
       break;
-  
     default:
       break;
   }
-
-  prinf("state %d", state);
+  AB = (A << 1) | B;
+*/
 
   /*
   prev_A = A;
