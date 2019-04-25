@@ -28,6 +28,7 @@ unsigned long last_target_freq;
 unsigned long last_duty_cycle;
 unsigned long duty_cnt = 0;
 unsigned long end_of_duty;
+unsigned long pulses_cnt = 0;
 int step_high = 0;
 int last_step_high;
 long int delta_time = 0;
@@ -68,7 +69,7 @@ int stepper_init(void){
   return status;
 }
 
-int stepper_update(int target_freq, int duty_cycle){
+int stepper_update(int target_freq){
   
   /* The freq is 10000Hz*//*and 1/100 is 100Hz */
   /* Since it sleeps half the time, it has only half freq*/
@@ -77,33 +78,22 @@ int stepper_update(int target_freq, int duty_cycle){
   
   printf("step high %d\n",step_high);
 
-  if (last_target_freq != target_freq || last_duty_cycle != duty_cycle) {
+  if (last_target_freq != target_freq) {
     update_target = (10000/target_freq);
-    last_duty_cycle = duty_cycle;
-    end_of_duty = (update_target /100)*duty_cycle;
     last_target_freq = target_freq;  
   }
   
+  if (step_high){
+    step_high = 0;
+    digitalWrite(PIN_STEP, LOW);
+    pulses_cnt++; 
+  }
   
   if (update_cnt_stp == 0) {
+    digitalWrite(PIN_STEP, HIGH);
     step_high = 1;
   }
  
-  if (update_cnt_stp >= end_of_duty){
-    step_high = 0;
-  }
-
-  //if (step_high != last_step_high) {
-    if (step_high == 1){ //Start of duty cycle
-      digitalWrite(PIN_STEP, HIGH);    
-    }
-    else { //end of duty cycle
-      digitalWrite(PIN_STEP, LOW); 
-    }
-    last_step_high = step_high;
-  //}
-  
-  
   update_cnt_stp+=1;
   if(update_cnt_stp >= update_target){
     update_cnt_stp = 0;
@@ -137,7 +127,7 @@ int stepper_update(int target_freq, int duty_cycle){
     */
    
   
-  return 0;
+  return pulses_cnt;
 }
 /***************************************************************************/
 

@@ -124,7 +124,7 @@ int main (int argc, char **argv)
 			{
 				/* update application */
 				enc_stop = enc_update();
-			        stp_stop = stepper_update(100, 99);
+			        stp_stop = stepper_update(100);
 
 				/* suspend until next event */
 				sigsuspend(&wait_mask);
