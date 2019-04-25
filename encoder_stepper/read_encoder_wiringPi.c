@@ -64,12 +64,9 @@ FILE *f;
 unsigned long update_cnt_enc;
 struct timespec time_now;
 struct timespec time_last;
-volatile int A = 0;
-volatile int B = 0;
-volatile int re_A = 0;
-volatile int re_B = 0;
-volatile int fe_A = 0;
-volatile int fe_B = 0;
+volatile char AB[] = "00"
+volatile char A = "0";
+volatile char B = "0";
 volatile int Z = 1; /* is always hihg unless it is at home pos*/
 volatile int seq = 0;
 volatile int old_seq = 0;
@@ -89,29 +86,23 @@ int state = 0;
 /* -------------------------------------------------------------------------
    myInterrupt:  called every time an event occurs */
 void aEvent(void) {
-  A = digitalRead(PIN_A);
-  if (A == 0){
-    fe_A = 1;
-    re_A = 0;
+  if (digitalRead(PIN_A)){
+    A = "1";
   }
   else
   {
-    re_A = 1;
-    fe_A = 0;
+    A = "0";
   }
   
 }
 
 void bEvent(void) {
-  B = digitalRead(PIN_B);
-  if (B == 0){
-    fe_B = 1;
-    re_B = 0;
+  if (digitalRead(PIN_B)){
+    B = "1";
   }
   else
   {
-    re_B = 1;
-    fe_B = 0;
+    B = "0";
   }
 }
 
@@ -160,29 +151,6 @@ int init_wiring(void){
 int enc_init(void) {
   /* init main */
   printf("******init read_encoder*******\n");
-  A = digitalRead(PIN_A);
-  
-  B = digitalRead(PIN_B);
-
-  if (A == 1){
-    if (B== 0){
-      state = 0;
-    }
-    else
-    {
-      state = 1;
-    }
-  }
-
-  if (A == 0){
-    if (B == 0){
-      state = 3;
-    }
-    else
-    {
-      state = 2;
-    }
-  }
 
   /*init_wiring();
   sets up the wiringPi library */
@@ -202,23 +170,24 @@ int enc_init(void) {
   wiringPiISR (PIN_B, INT_EDGE_BOTH, &bEvent);
   wiringPiISR (PIN_Z, INT_EDGE_BOTH, &zEvent);*/
 
-  /*if (wiringPiISR(PIN_B, INT_EDGE_BOTH, &bEvent) < 0 ) {
-    fprintf (stderr, "Unable to setup ISR: %s\n", strerror (errno));
-    return 1;
-  }
-  printf("here1\n");
   if (wiringPiISR(PIN_A, INT_EDGE_BOTH, &aEvent) < 0 ) {
     fprintf (stderr, "Unable to setup ISR: %s\n", strerror (errno));
     return 1;
   }
-  printf("here2\n");
+
+  if (wiringPiISR(PIN_B, INT_EDGE_BOTH, &bEvent) < 0 ) {
+    fprintf (stderr, "Unable to setup ISR: %s\n", strerror (errno));
+    return 1;
+  }
 
   if (wiringPiISR(PIN_Z, INT_EDGE_BOTH, &zEvent) < 0 ) {
     fprintf (stderr, "Unable to setup ISR: %s\n", strerror (errno));
     return 1;
   }
-  printf("here3\n");
 
+  AB = A + B;
+
+/*
   f = fopen("../data_for_git/encoder_data.txt", "w");
   if (f == NULL)
   {
@@ -250,55 +219,44 @@ void enc_quit(void) {
 // main
 int enc_update(void) {
 
-  switch (state)
+  switch (AB)
   {
-    case 0:
-      if (re_B == 1) {
+    case "00":
+      if (B == "1") {
         tics++;
-        state = 1;
       }
-      if (fe_A == 1) {
+      else if (A == "1") {
         tics--;
-        state = 3;
       }
       break;
-    
-    case 1:
-      if (fe_A == 1) {
+    case "01":
+      if (A == "1") {
         tics++;
-        state = 2;
       }
-     if (fe_B == 1) {
+     else if (B == "0") {
         tics--;
-        state = 0;
       }
       break;
-
-    case 2:
-      if (fe_B == 1) {
+    case "11":
+      if (B == "0") {
         tics++;
-        state = 3;
       }
-      if (re_A == 1) {
+      if (A == "0") {
         tics--;
-        state = 1;
       }
       break;
-    
-    case 3:
-       if (re_A == 1) {
+    case "10":
+       if (A == "0") {
         tics++;
-        state = 0;
-      }
-      if (re_B == 1) {
+        }
+      if (B == "1") {
         tics--;
-        state = 2;
-      }
+        }
       break;
-  
     default:
       break;
   }
+  AB = A + B;
 
   printf("state %d", state);
 
