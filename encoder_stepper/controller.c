@@ -56,10 +56,15 @@ int controller_init(void){
 
 int detect_slip(unsigned long enc_tics, unsigned long stp_tics){
   //First transfer both encoder and stepper tics to theta
-  theta_enc = enc_tics/524;
-  theta_stp = stp_tics/70; //this value is to be determined
+  
   //Then return the difference between theta maybe with some error thresholding
 
+
+}
+
+double est_lin_vel(int stepper_freq, double r){
+  double rounds_sec = stepper_freq/200;
+  return rounds_sec*M_PI*2;
 
 }
 
@@ -85,6 +90,9 @@ int controller_update(signed long enc_tics, unsigned long stp_tics){
       if (accelerate_cnt % 1000 == 0) {
         stepper_freq -= delta_vel;
         accelerate_cnt = 0;
+      }
+      if (stepper_freq == 0){
+        state_controller = 0;
       }
       break;
   
