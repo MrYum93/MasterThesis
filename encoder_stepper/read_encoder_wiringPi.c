@@ -91,11 +91,13 @@ int state = 0;
 void aEvent(void) {
   A = digitalRead(PIN_A);
   if (A == 0){
-    fe_A == 1;
+    fe_A = 1;
+    re_A = 0;
   }
   else
   {
-    re_A == 1;
+    re_A = 1;
+    fe_A = 0;
   }
   
 }
@@ -103,11 +105,13 @@ void aEvent(void) {
 void bEvent(void) {
   B = digitalRead(PIN_B);
   if (B == 0){
-    fe_B == 1;
+    fe_B = 1;
+    re_B = 0;
   }
   else
   {
-    re_B == 1;
+    re_B = 1;
+    fe_B = 0;
   }
 }
 
@@ -128,11 +132,11 @@ int init_wiring(void){
   pinMode (PIN_B, INPUT) ;
   pinMode (PIN_Z, INPUT) ;
 
-   set PINs to events generate an interrupt on high-to-low transitions
+  /* set PINs to events generate an interrupt on high-to-low transitions
      and attach () to the interrupt */
   wiringPiISR (PIN_A, INT_EDGE_BOTH, &aEvent);
   wiringPiISR (PIN_B, INT_EDGE_BOTH, &bEvent);
-  wiringPiISR (PIN_Z, INT_EDGE_BOTH, &zEvent);*/
+  wiringPiISR (PIN_Z, INT_EDGE_BOTH, &zEvent);
   
   if(wiringPiISR(PIN_B, INT_EDGE_BOTH, &bEvent) < 0 ) {
     fprintf (stderr, "Unable to setup ISR: %s\n", strerror (errno));
@@ -166,7 +170,7 @@ int enc_init(void) {
     }
     else
     {
-      state = 1
+      state = 1;
     }
   }
 
@@ -176,7 +180,7 @@ int enc_init(void) {
     }
     else
     {
-      state = 2
+      state = 2;
     }
   }
 
@@ -234,7 +238,7 @@ int enc_init(void) {
 
   printf ("enc_init() in read_encoder_wiringPi.c called\n");
   */
-  return status;
+  return ENC_INIT_OK;
 }
 
 void enc_quit(void) {
@@ -246,18 +250,15 @@ void enc_quit(void) {
 // main
 int enc_update(void) {
 
-
   switch (state)
   {
     case 0:
       if (re_B == 1) {
         tics++;
-        re_B = 0;
         state = 1;
       }
-      else if (fe_A == 1) {
-        tics--
-        fe_A = 0;
+      if (fe_A == 1) {
+        tics--;
         state = 3;
       }
       break;
@@ -265,12 +266,10 @@ int enc_update(void) {
     case 1:
       if (fe_A == 1) {
         tics++;
-        fe_A = 0;
         state = 2;
       }
-      else if (fe_B == 1) {
-        tics--
-        fe_B = 0;
+     if (fe_B == 1) {
+        tics--;
         state = 0;
       }
       break;
@@ -278,12 +277,10 @@ int enc_update(void) {
     case 2:
       if (fe_B == 1) {
         tics++;
-        fe_B = 0;
         state = 3;
       }
-      else if (re_A == 1) {
-        tics--
-        re_A = 0;
+      if (re_A == 1) {
+        tics--;
         state = 1;
       }
       break;
@@ -291,12 +288,10 @@ int enc_update(void) {
     case 3:
        if (re_A == 1) {
         tics++;
-        re_A = 0;
         state = 0;
       }
-      else if (re_B == 1) {
-        tics--
-        re_B = 0;
+      if (re_B == 1) {
+        tics--;
         state = 2;
       }
       break;
@@ -305,7 +300,7 @@ int enc_update(void) {
       break;
   }
 
-  prinf("state %d", state);
+  printf("state %d", state);
 
   /*
   prev_A = A;
