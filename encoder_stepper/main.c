@@ -50,11 +50,15 @@
 /*#include "app.h"*/
 #include "read_encoder_wiringPi.h"
 #include "stepper_driver.h"
+#include "controller.h"
 
 /***************************************************************************/
 /* global variables */
 
 static sigset_t wait_mask;
+unsigned long enc_tics = 0;
+unsigned long stp_tics = 0;
+unsigned long setpoint_vel = 0;
 /***************************************************************************/
 void nullhandler(int signo)
 {
@@ -66,7 +70,7 @@ static void quit () /* do not add void here */
 	/* perform application cleanup */
 	enc_quit();
   stepper_quit();
-
+	controller_quit();
 	/* exit */
 	exit(EXIT_SUCCESS);
 }
@@ -115,17 +119,19 @@ int main (int argc, char **argv)
 		printf("***SCHED***\n");
 		/* initialize application */
 		if ((enc_init() == ENC_INIT_OK) &
-       		    (stepper_init() == STP_INIT_OK))
+       		    (stepper_init() == STP_INIT_OK)) &
+							(controller_init() == CONTROLLER_INIT_OK)
+
 		{
 			int enc_stop = false;
 		        int stp_stop = false;
 
-			while ((!enc_stop) & (!stp_stop))
+			while (1) //(!enc_stop) & (!stp_stop)
 			{
 				/* update application */
-				enc_stop = enc_update();
-			        stp_stop = stepper_update(100);
-
+				enc_tics = enc_update();
+			  stp_tics = stepper_update(100);
+				setpoint_vel = controller_update(enc_tics, stp_tics);
 				/* suspend until next event */
 				sigsuspend(&wait_mask);
 			}
