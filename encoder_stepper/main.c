@@ -130,7 +130,7 @@ int main (int argc, char **argv)
 			{
 				/* update application */
 				enc_tics = enc_update();
-			  stp_tics = stepper_update(100);
+			  stp_tics = stepper_update(setpoint_vel);
 				setpoint_vel = controller_update(enc_tics, stp_tics);
 				/* suspend until next event */
 				sigsuspend(&wait_mask);

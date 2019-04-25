@@ -26,6 +26,11 @@
 struct timespec time_now;
 double theta_enc = 0;
 double theta_stp = 0;
+int state = 1;
+int stepper_freq = 0;
+int delta_vel = 10;
+unsigned long accelerate_cnt = 0;
+
 /****************************************************************************/
 
 int controller_init(void){
@@ -60,10 +65,34 @@ int detect_slip(unsigned long enc_tics, unsigned long stp_tics){
 
 int controller_update(signed long enc_tics, unsigned long stp_tics){
   
-  detect_slip(enc_tics, stp_tics);
-  printf("Encoder pulses %il, stepper pulses %ul\n", enc_tics, stp_tics);
-
-  return 0;
+  switch (state)
+  {
+    case 0: /*Standby state*/
+      stepper_freq = 0;
+      break;
+    
+    case 1: /*accelerate state*/
+      if (accelerate_cnt % 10000 == 0){
+        accelerate_cnt = 0;
+        stepper_freq += delta_vel;
+      }
+      accelerate_cnt++;
+      break;
+    
+    case 2: /*braking state*/
+      if (accelerate_cnt % 100 == 0 {
+        stepper_freq -= delta_vel;
+        accelerate_cnt = 0;
+      }
+      accelerate_cnt++;
+      break;
+  
+    default:
+      break;
+  }
+  
+  printf("Stepper vel %d", stepper_freq);
+  return stepper_freq;
 }
 /***************************************************************************/
 
