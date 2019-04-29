@@ -60,6 +60,7 @@
 int controller_init(void);
 int controller_update(signed long enc_tics, unsigned long stp_tics);
 void controller_quit(void);
+double est_lin_vel(int stepper_freq, double r);
 
 /***************************************************************************/
 #endif
