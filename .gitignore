@@ -1,9 +1,10 @@
+*.pyc
+
 .idea/*
-<<<<<<< HEAD
+.vscode/*
+
 CAD/*
 data/*
-*.pyc
-=======
-*.pyc
-data/*
->>>>>>> 5b8ac0d853066634fb4177f5543858ed63ca6500
+logs/*
+plans/*
+
