@@ -107,7 +107,7 @@ class PlotSystem(object):
         self.fig = figure()
         ion()
 
-        self.ax = axis([min_x - 0.3, max_x + 0.3, min_y - 1, max_y + 1])
+        self.ax = axis([min_x, max_x, min_y, max_y])
         plt.show(block=False)
         self.plane = [0, 0, 0, 17]
         self.left_theta = 0
