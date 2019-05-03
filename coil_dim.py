@@ -8,9 +8,10 @@ from plot_system import PlotSystem
 import time
 
 h = 0.016 # one sheet is 4 mm -> 0.004 m. We need at least 4 sheets
+#h = 2 # This is to test if the fore on the plane can be changed by making the coil taller
 rho = 600
-r = 0.2 # best between 0.2 and 0.25
-delta_r = 0.0125 # with 0.0125 it should be run 4 times
+r = 0.15 # best between 0.2 and 0.25
+delta_r = 0.05 # with 0.0125 it should be run 4 times
 t = 0
 delta_t = 0.01
 circle_circum = 0
@@ -31,7 +32,7 @@ rope_speed_l = []
 force_l = []
 
 cnt = 0
-while r < 0.25:
+while r < 0.35:
     vol = math.pi*r**2*h
     m = vol*rho
     I=0.5*m*r**2
@@ -66,7 +67,7 @@ fig = plt.figure
 plt.plot(t_l, r_l, "y", label="coil rad")
 plt.plot(t_l, force_l, "k", label="force on plane")
 plt.plot(t_l, motor_omega_l, "r--", label="Motor vel")
-plt.plot(t_l, motor_alpha_list, "g--", label="Motor acc")
+# plt.plot(t_l, motor_alpha_list, "g--", label="Motor acc")
 plt.plot(t_l, rope_len_l, "b--", label="Rope length")
 plt.plot(t_l, rope_speed_l, "c", label="rope speed")
 title = "Coil dim"
