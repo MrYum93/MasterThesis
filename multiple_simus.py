@@ -339,14 +339,14 @@ class ar_model(object):
             else:
                 #trigom estimate
                 #Trigonometry see drawing in free body diagram under arrested recovery
-                a_y = self.arm_length*math.sin(item)
+                a_y = abs(self.arm_length*math.sin(item))
                 a_x = self.arm_length*math.cos(item)
                 
                 difference = self.neutral_rope_length**2-(self.half_distane_poles-a_x)**2
-                print("Difference", self.neutral_rope_length**2-(self.half_distane_poles-a_x)**2)
+                #print("Difference", self.neutral_rope_length**2-(self.half_distane_poles-a_x)**2)
                     #r_y = math.sqrt(abs(self.neutral_rope_length**2-(self.half_distane_poles-a_x)**2))
                 r_y = math.sqrt(difference)
-                print("r_y", r_y)
+                print("item", item)
                 #except:
                 #print("nope")
                 #else:
@@ -354,7 +354,10 @@ class ar_model(object):
                 #    r_y = 0
                 #Result
                 #print("a_y", a_y, "a_x", a_x, "r_y", r_y)
-                y_pos_estimate =(a_y+r_y)+0.4
+                if item < 0:
+                    y_pos_estimate = self.arm_length -(a_y-r_y)
+                else:
+                    y_pos_estimate = self.arm_length +(a_y+r_y)
                 #print(self.plane_pos_l[time_counter][1], quick_pos)
                 yaw_now = item
                 t_now = self.time_l[time_counter]
