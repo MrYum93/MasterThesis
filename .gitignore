@@ -1,4 +1,8 @@
-.idea/*
 *.pyc
-data/*
+
+.idea/*
 .vscode/*
+
+data/*
+logs/*
+plans/*
