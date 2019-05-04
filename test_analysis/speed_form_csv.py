@@ -252,6 +252,7 @@ class CSV_to_speed(object):
         #.yaxis.set_major_formatter(FormatStrFormatter('%.1'))
         plt.show()
 
+        self.pos_to_vel_acc(float_time, dis_l, "Speed of distance")
 
 
 
@@ -364,7 +365,19 @@ class CSV_to_speed(object):
     def pos_to_vel_acc(self, time_list, pos_list, title=""):
         x = time_list
         y = pos_list
-
+        '''
+        last_pos = pos_list[0] + 0.001
+        last_t = time_list[0] + 0.001
+        speed_list = []
+        
+        for item in pos_list:
+            delta_pos = item - last_pos
+            delta_t = t -last_t
+            speed = delta_pos/delta_t
+            speed_list.append(speed)
+        
+        
+        '''
         dy = np.zeros(y.__len__(), np.float)
         dyy = np.zeros(y.__len__(), np.float)
         dy[0:-1] = np.diff(y) / np.diff(x)
@@ -377,10 +390,10 @@ class CSV_to_speed(object):
         y = y[:-2]
         dy = dy[:-2]
         dyy = dyy[:-2]
-
+       
         plt.subplot(3, 1, 1)
         plt.title(title)
-        plt.plot(x, y, 'r')
+        plt.plot(time_list, pos_list, 'r')
         plt.xlabel('Time since hooking', fontsize=18)
         plt.ylabel('Pos', fontsize=16)
 
