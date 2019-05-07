@@ -26,7 +26,7 @@ TO_DEG = 180 / math.pi
 # We're using SI units
 class ar_model(object):
     def __init__(self):
-        self.interactive = False
+        self.interactive = True
         self.plane_verbose = False
         self.cr_verbose = False
         self.right_arm_verbose = False
@@ -35,7 +35,7 @@ class ar_model(object):
         self.run_no_init = 0
         self.change_const_init = (math.pi*0.5)/9 #Amount to change
         self.parameter_change_id = "eqi_change"
-        self.time_to_run = 0.4
+        self.time_to_run = 0.7
         self.time_to_sleep = 0.001
 
 
@@ -82,8 +82,8 @@ class ar_model(object):
         self.rope_k = 29.16
 
         self.plane_mass = 0.7
-        self.plane_pos = np.array([0, -0.1, 0]) #The plane starts one meter before the docking station before it is hooked
-        self.plane_vel = np.array([0, 17, 0])
+        self.plane_pos = np.array([0, -0.5, 0]) #The plane starts one meter before the docking station before it is hooked
+        self.plane_vel = np.array([0, 8.8, 0])
         self.plane_acc = np.array([0, 0, 0])
         self.plane_displacement = 0
         self.plane_k_e = 1/2 * self.plane_mass * self.plane_vel**2
@@ -148,7 +148,7 @@ class ar_model(object):
         self.start_right_rope_anchor = np.array([(self.neutral_rope_length+self.arm_length), -0.0, 0.0]) 
         #Both arm kinematics
         #self.arm_dampening = 0.9
-        self.torsion_K = 1 #3
+        self.torsion_K = 3 #3
 
 
         #Right arm kinematics
@@ -304,6 +304,8 @@ class ar_model(object):
         plt.legend()
         plt.show()
 
+    def est_pos_x_aligned_with_springs(self, theta_l):
+        dummy = 0
 
     def est_vel_y_alligned(self, theta_l):
         first_item = True
@@ -534,6 +536,42 @@ class ar_model(object):
         plt.ylabel('Thetha [rad]')
         plt.xlabel("Time [seconds]")
         plt.legend()
+        plt.show()
+
+    def plot_fw_raw(self):
+        plot_pos = []
+        plot_vel = []
+        plot_acc = []
+        
+        for item in self.plane_pos_l:
+            pos = item[1]
+            plot_pos.append(pos)
+        
+        for item in self.plane_vel_l:
+            vel = item[1]
+            plot_vel.append(vel)
+        
+        #for item in self.plane_acc_l:
+        #    print("acc item 1", item)
+        #    acc = item[1]
+        #    plot_acc.append(acc)
+
+        plt.subplot(3, 1, 1)
+        plt.title("FW simulation position velocity and acceleration")
+        plt.plot(self.time_l, plot_pos, 'r')
+        plt.xlabel('Time[s]', fontsize=12)
+        plt.ylabel('Pos[m]', fontsize=12)
+
+        plt.subplot(3, 1, 2)
+        plt.plot(self.time_l, plot_vel[:-1], 'r')
+        plt.xlabel('Time [s]', fontsize=12)
+        plt.ylabel('Vel [m/s]', fontsize=12)
+
+        plt.subplot(3, 1, 3)
+        plt.plot(self.time_l, self.plane_acc_l, 'r')
+        plt.xlabel('Time [s]', fontsize=12)
+        plt.ylabel('Acc [m/s^2]', fontsize=12)
+
         plt.show()
     
     def calc_theta_err(self):
@@ -813,11 +851,16 @@ class ar_model(object):
         '''
         inertia_arm = 0.006
         #L = 0.4 #The length of the arm
+        #self.eqi_angle_left -= math.pi/10
         #self.torsion_K = 3 #The spring constant of the torsion spring
         #self.eqi_angle_left = 0 #Equilibrim angle of the torsion spring this angle is 45 degrees from the x axis cw
         spring_torque = (self.eqi_angle_left-self.theta_left)*self.torsion_K
+        #print("Spring torque", spring_torque)
+
         lever_torque = np.cross(position_vector, force_vector)
         total_torque = spring_torque + lever_torque[2] #fortegnsfejl.... og inverse vector passeret
+        
+        print("Lever torque[2]", lever_torque[2], "Spring torque", abs(spring_torque), "Theta left", self.theta_left*180/math.pi)
         acceleration = total_torque/inertia_arm
         #print("total_t", force_vector)
         #print("LEFT Lever torque", lever_torque[2])
@@ -1185,12 +1228,15 @@ class ar_model(object):
             #after 1 run saving
             # theta err save and plotplotting_list.append(self.calc_theta_err()) #also saves the list
             #self.plot_plane_acc()
-            self.est_vel_y_alligned(self.left_arm_theta_list)
+            #self.plot_fw_raw()
+            #self.est_vel_y_alligned(self.left_arm_theta_list)
             plotting_list.append(self.plane_acc_l)
+            
             run_no += 1
             plt.close('all')    
             #self.plot_thetas()
         print("here", len(plotting_list))
+        
         self.plot_theta_err(plotting_list)
         #self.plot_motor()
         #self.plot_right_arm()
