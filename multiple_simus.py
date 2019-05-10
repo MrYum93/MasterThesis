@@ -26,16 +26,16 @@ TO_DEG = 180 / math.pi
 # We're using SI units
 class ar_model(object):
     def __init__(self):
-        self.interactive = False
+        self.interactive = True
         self.plane_verbose = False
         self.cr_verbose = False
         self.right_arm_verbose = False
         #mult sims control
         self.no_runs_init = 10
         self.run_no_init = 0
-        self.change_const_init = 50 #Amount to change
-        self.parameter_change_id = "rope_k"
-        self.time_to_run = 0.4
+        self.change_const_init = (math.pi*0.5)/9 #Amount to change
+        self.parameter_change_id = "eqi_change"
+        self.time_to_run = 0.7
         self.time_to_sleep = 0.001
 
 
@@ -68,7 +68,7 @@ class ar_model(object):
         self.delta_t = 0.0005
 
 
-        self.eqi_change = math.pi/2 #<-oriented 90 degrees
+        self.eqi_change = 0 #(math.pi/2) #<-oriented 90 degrees after 90 runs
         self.eqi_angle_left = - self.eqi_change
         self.eqi_angle_right = math.pi + self.eqi_change
         self.plane_hooked = False
@@ -79,11 +79,11 @@ class ar_model(object):
          #Both arms
         
         self.rope_len = self.neutral_rope_length
-        self.rope_k = 200
+        self.rope_k = 29.16
 
         self.plane_mass = 0.7
-        self.plane_pos = np.array([0, -0.1, 0]) #The plane starts one meter before the docking station before it is hooked
-        self.plane_vel = np.array([0, 17, 0])
+        self.plane_pos = np.array([0, -0.5, 0]) #The plane starts one meter before the docking station before it is hooked
+        self.plane_vel = np.array([0, 8.8, 0])
         self.plane_acc = np.array([0, 0, 0])
         self.plane_displacement = 0
         self.plane_k_e = 1/2 * self.plane_mass * self.plane_vel**2
@@ -148,7 +148,7 @@ class ar_model(object):
         self.start_right_rope_anchor = np.array([(self.neutral_rope_length+self.arm_length), -0.0, 0.0]) 
         #Both arm kinematics
         #self.arm_dampening = 0.9
-        self.torsion_K = 1 #3
+        self.torsion_K = 3 #3
 
 
         #Right arm kinematics
@@ -304,17 +304,21 @@ class ar_model(object):
         plt.legend()
         plt.show()
 
+    def est_pos_x_aligned_with_springs(self, theta_l):
+        dummy = 0
 
     def est_vel_y_alligned(self, theta_l):
         first_item = True
         time_counter = 0
+        start_angle = ""
+        start_float = 0.0
         #local_t = []
         for item in theta_l:
             if first_item: 
                 
                 #hyp = (self.neutral_rope_length + self.arm_length) /math.cos(item)
                 #quick_pos = hyp * math.sin(item)
-                
+                start_float = item
                 #Trigonometry see drawing in free body diagram under arrested recovery
                 a_y = self.arm_length*math.sin(item)
                 a_x = self.arm_length*math.cos(item)
@@ -324,7 +328,7 @@ class ar_model(object):
                 try:
                      r_y = math.sqrt(self.neutral_rope_length**2-(self.half_distane_poles-a_x)**2)
                 except:
-                    print("")
+                    r_y = 0
                 else:
                     r_y = 0
 
@@ -336,17 +340,24 @@ class ar_model(object):
                 first_item = False
                 time_counter += 1
                 self.est_pos_list.append(0)
+                start_angle = str(item)
             else:
                 #trigom estimate
                 #Trigonometry see drawing in free body diagram under arrested recovery
+                #item -= self.eqi_angle_left
                 a_y = abs(self.arm_length*math.sin(item))
                 a_x = self.arm_length*math.cos(item)
                 
+                #TODO: change line 367 it only made it worse.
                 difference = self.neutral_rope_length**2-(self.half_distane_poles-a_x)**2
                 #print("Difference", self.neutral_rope_length**2-(self.half_distane_poles-a_x)**2)
                     #r_y = math.sqrt(abs(self.neutral_rope_length**2-(self.half_distane_poles-a_x)**2))
-                r_y = math.sqrt(difference)
-                print("item", item)
+                #if difference == 0:
+                #    difference = 0.01
+                r_y = math.sqrt(abs(difference))
+                #print("item", item)
+                #if self.time_l[time_counter]>0.12 and self.time_l[time_counter] < 0.2:
+                #    print(self.time_l[time_counter],item, math.asin(r_y/self.neutral_rope_length))
                 #except:
                 #print("nope")
                 #else:
@@ -355,7 +366,7 @@ class ar_model(object):
                 #Result
                 #print("a_y", a_y, "a_x", a_x, "r_y", r_y)
                 if item < 0:
-                    y_pos_estimate = self.arm_length -(a_y-r_y)
+                    y_pos_estimate = self.arm_length  -(a_y-r_y)
                 else:
                     y_pos_estimate = self.arm_length +(a_y+r_y)
                 #print(self.plane_pos_l[time_counter][1], quick_pos)
@@ -387,7 +398,8 @@ class ar_model(object):
         plt.plot(self.est_t_l , self.est_pos_list, label="Estimated position")
         plt.plot(self.time_l, new, "r--", label="Actual position")
         print("t",len(self.est_t_l), "p", len(new))
-        plt.title("Accuracy of position estimate (y_setup)")
+        title_string = "Accuracy of position estimate start arm angle %s [Rad]" %(start_angle)
+        plt.title(title_string)
         plt.ylabel('Y-axis position [m]')
         plt.xlabel("Time [seconds]")
         plt.legend()
@@ -524,6 +536,42 @@ class ar_model(object):
         plt.ylabel('Thetha [rad]')
         plt.xlabel("Time [seconds]")
         plt.legend()
+        plt.show()
+
+    def plot_fw_raw(self):
+        plot_pos = []
+        plot_vel = []
+        plot_acc = []
+        
+        for item in self.plane_pos_l:
+            pos = item[1]
+            plot_pos.append(pos)
+        
+        for item in self.plane_vel_l:
+            vel = item[1]
+            plot_vel.append(vel)
+        
+        #for item in self.plane_acc_l:
+        #    print("acc item 1", item)
+        #    acc = item[1]
+        #    plot_acc.append(acc)
+
+        plt.subplot(3, 1, 1)
+        plt.title("FW simulation position velocity and acceleration")
+        plt.plot(self.time_l, plot_pos, 'r')
+        plt.xlabel('Time[s]', fontsize=12)
+        plt.ylabel('Pos[m]', fontsize=12)
+
+        plt.subplot(3, 1, 2)
+        plt.plot(self.time_l, plot_vel[:-1], 'r')
+        plt.xlabel('Time [s]', fontsize=12)
+        plt.ylabel('Vel [m/s]', fontsize=12)
+
+        plt.subplot(3, 1, 3)
+        plt.plot(self.time_l, self.plane_acc_l, 'r')
+        plt.xlabel('Time [s]', fontsize=12)
+        plt.ylabel('Acc [m/s^2]', fontsize=12)
+
         plt.show()
     
     def calc_theta_err(self):
@@ -803,11 +851,16 @@ class ar_model(object):
         '''
         inertia_arm = 0.006
         #L = 0.4 #The length of the arm
+        #self.eqi_angle_left -= math.pi/10
         #self.torsion_K = 3 #The spring constant of the torsion spring
         #self.eqi_angle_left = 0 #Equilibrim angle of the torsion spring this angle is 45 degrees from the x axis cw
         spring_torque = (self.eqi_angle_left-self.theta_left)*self.torsion_K
+        #print("Spring torque", spring_torque)
+
         lever_torque = np.cross(position_vector, force_vector)
         total_torque = spring_torque + lever_torque[2] #fortegnsfejl.... og inverse vector passeret
+        
+        print("Lever torque[2]", lever_torque[2], "Spring torque", abs(spring_torque), "Theta left", self.theta_left*180/math.pi)
         acceleration = total_torque/inertia_arm
         #print("total_t", force_vector)
         #print("LEFT Lever torque", lever_torque[2])
@@ -1167,7 +1220,7 @@ class ar_model(object):
                     self.placement_v_r[1]], 
                     [self.placement_v_r[0]+self.position_vector_right_arm[0], 
                     self.placement_v_r[1]+self.position_vector_right_arm[1]]]
-                    extra_vec = [self.start_position_vector_right_arm[0]-self.arm_length*math.cos(self.theta_right), self.start_position_vector_right_arm[1]-self.arm_length*math.sin(self.theta_right), self.start_position_vector_right_arm[0], self.start_position_vector_right_arm[1]]#extra_vec = [right_rope_anchor[0], right_rope_anchor[1], f_rope_r[0], f_rope_r[1]]
+                    extra_vec = [self.time, 0, 0, 0]#[self.start_position_vector_right_arm[0]-self.arm_length*math.cos(self.theta_right), self.start_position_vector_right_arm[1]-self.arm_length*math.sin(self.theta_right), self.start_position_vector_right_arm[0], self.start_position_vector_right_arm[1]]#extra_vec = [right_rope_anchor[0], right_rope_anchor[1], f_rope_r[0], f_rope_r[1]]
                     plot.update_plot(plane_plot, [0, 0], [0, 0], left_rope, right_rope, left_arm, right_arm, extra_vec) #Plane[ x, y, x vel, y vel], [0, 0], [0, 0], left_rope[armx, army, planex, planey], 
                                                                     #[[self.start_right_rope_anchor[0]-self.vras_x, self.start_right_rope_anchor[1]-self.vras_y], [right_rope_anchor[0], right_rope_anchor[1]]]
                     #right_rope[armx, army, planex, planey], left_arm[centerx, centery, endpointx, endpointy], right_arm[centerx, centery, endpointx, endpointy]
@@ -1175,12 +1228,15 @@ class ar_model(object):
             #after 1 run saving
             # theta err save and plotplotting_list.append(self.calc_theta_err()) #also saves the list
             #self.plot_plane_acc()
-            self.est_vel_y_alligned(self.left_arm_theta_list)
+            #self.plot_fw_raw()
+            #self.est_vel_y_alligned(self.left_arm_theta_list)
             plotting_list.append(self.plane_acc_l)
+            
             run_no += 1
             plt.close('all')    
             #self.plot_thetas()
         print("here", len(plotting_list))
+        
         self.plot_theta_err(plotting_list)
         #self.plot_motor()
         #self.plot_right_arm()

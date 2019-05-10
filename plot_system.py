@@ -146,7 +146,8 @@ class PlotSystem(object):
         plt.arrow(pos_x, pos_y, vel_x, vel_y, head_width=0.05, head_length=0.1)
 
     def plot_extra_vector(self, pos_x, pos_y, mag_x, mag_y):
-        plt.arrow(pos_x, pos_y, mag_x, mag_y, head_width=0.1, head_length=0.1)
+        string = "t= %f" %(pos_x)
+        plt.text(0, -0.2, string) #plt.arrow(pos_x, pos_y, mag_x, mag_y, head_width=0.1, head_length=0.1)
 
     def plot_rope(self, anchor1, anchor2):
         plt.plot([anchor1[0], anchor2[0]], [anchor1[1], anchor2[1]], 'r-')
@@ -191,7 +192,7 @@ class PlotSystem(object):
             self.update_plot(self.plane,
                              left_pole, right_pole,
                              left_rope, right_rope,
-                             left_spring, right_spring)
+                             left_spring, right_spring, extra_vec)
 
             pause(0.00001)
 
