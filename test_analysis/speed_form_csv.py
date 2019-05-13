@@ -290,7 +290,7 @@ class CSV_to_speed(object):
         
         
         hook_x = -0.18
-        hook_y = 0.21240174301 
+        hook_y = 0.21240174301 + 0.12 #The hook point is probably more forward
         hook_z = 2.120824179487176
         self.find_dist_to_hooking_point(x, y, z, 0.0, hook_x, hook_y, hook_z, new_time)
         fig = plt.figure()

@@ -26,18 +26,18 @@ TO_DEG = 180 / math.pi
 # We're using SI units
 class ar_model(object):
     def __init__(self):
-        self.interactive = True
+        self.interactive = False
         self.plane_verbose = False
         self.cr_verbose = False
         self.right_arm_verbose = False
         #mult sims control
         self.no_runs_init = 10
         self.run_no_init = 0
-        self.change_const_init = (math.pi*0.5)/9 #Amount to change
-        self.parameter_change_id = "eqi_change"
-        self.time_to_run = 0.7
+        self.change_const_init = 1000#math.pi*0.5/9 #Amount to change
+        self.parameter_change_id = "rope_k"
+        self.time_to_run = 0.5
         self.time_to_sleep = 0.001
-
+        self.zero_vel_d_found = False 
 
         #Multi sim lists of lists
         self.time_lists = []
@@ -82,7 +82,7 @@ class ar_model(object):
         self.rope_k = 29.16
 
         self.plane_mass = 0.7
-        self.plane_pos = np.array([0, -0.5, 0]) #The plane starts one meter before the docking station before it is hooked
+        self.plane_pos = np.array([0, 0, 0]) #The plane starts one meter before the docking station before it is hooked
         self.plane_vel = np.array([0, 8.8, 0])
         self.plane_acc = np.array([0, 0, 0])
         self.plane_displacement = 0
@@ -148,7 +148,7 @@ class ar_model(object):
         self.start_right_rope_anchor = np.array([(self.neutral_rope_length+self.arm_length), -0.0, 0.0]) 
         #Both arm kinematics
         #self.arm_dampening = 0.9
-        self.torsion_K = 3 #3
+        self.torsion_K = 3#0.266
 
 
         #Right arm kinematics
@@ -439,10 +439,11 @@ class ar_model(object):
             plt.plot(self.time_l, plot_l[7], "g--", label=self.parameter_change_id +" = " + str(getattr(self, self.parameter_change_id)-2*self.change_const_init))
             plt.plot(self.time_l, plot_l[8], "b--", label=self.parameter_change_id +" = " + str(getattr(self, self.parameter_change_id)-1*self.change_const_init))
             plt.plot(self.time_l, plot_l[9], "c--", label=self.parameter_change_id +" = " + str(getattr(self, self.parameter_change_id)+0*self.change_const_init))
+            #plt.plot(self.time_l, self., "m", label=self.parameter_change_id +" = " + str(getattr(self, self.parameter_change_id)+0*self.change_const_init))
 
            
-            title = "FW acceleration at multiple arm orientations"
-            plt.ylabel('FW acceleration [m/s^2]')
+            title = "Theta error at different rope spring constants"
+            plt.ylabel('Theta error [rad]')
             plt.xlabel("Time [seconds]")
             plt.legend(loc='upper right')
             plt.title(title)
@@ -860,7 +861,7 @@ class ar_model(object):
         lever_torque = np.cross(position_vector, force_vector)
         total_torque = spring_torque + lever_torque[2] #fortegnsfejl.... og inverse vector passeret
         
-        print("Lever torque[2]", lever_torque[2], "Spring torque", abs(spring_torque), "Theta left", self.theta_left*180/math.pi)
+        #print("Lever torque[2]", lever_torque[2], "Spring torque", abs(spring_torque), "Theta left", self.theta_left*180/math.pi)
         acceleration = total_torque/inertia_arm
         #print("total_t", force_vector)
         #print("LEFT Lever torque", lever_torque[2])
@@ -1069,6 +1070,7 @@ class ar_model(object):
 
         ##
         plotting_list = []
+        d_list = []
         while run_no < no_runs:
 
             self.__init__()
@@ -1190,7 +1192,9 @@ class ar_model(object):
                 if self.plane_verbose:
                     print("plane pos", self.plane_pos)
                     print("Is plane hooked?", plane_hooked)            
-                
+                if self.plane_vel[1] < 0.01 and self.plane_vel[1] > -0.01 and not self.zero_vel_d_found:
+                    print("Plane vel", self.plane_vel[1], "Plane position", self.plane_pos[1])
+                    self.zero_vel_d_found = True
                 #Appending to lists with intresting parameters
                 self.plane_pos_l.append(self.plane_pos)
                 self.plane_vel_l.append(self.plane_vel)
@@ -1230,7 +1234,7 @@ class ar_model(object):
             #self.plot_plane_acc()
             #self.plot_fw_raw()
             #self.est_vel_y_alligned(self.left_arm_theta_list)
-            plotting_list.append(self.plane_acc_l)
+            plotting_list.append(self.calc_theta_err())#plotting_list.append(self.plane_acc_l)
             
             run_no += 1
             plt.close('all')    
