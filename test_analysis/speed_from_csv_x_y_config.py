@@ -52,18 +52,25 @@ class CSV_to_speed(object):
         # Following line lists all files in the folder you look for
         self.csv_files = [f for f in listdir(self.csv_folder_path) if isfile(join(self.csv_folder_path, f))]
         self.frame_rate = 0
-        self.an_x = [] #Hopefully one pole
-        self.an_y = []
-        self.an_z = []
 
-        self.ano_x = []
-        self.ano_y = []
-        self.ano_z = [] #Hopefully another pole
+        self.fw_x = []  # FW
+        self.fw_y = []
+        self.fw_z = []
+
+        self.l_a_x = []
+        self.l_a_y = []
+        self.l_a_z = []  # l pole
+
+        self.r_a_x = []
+        self.r_a_y = []
+        self.r_a_z = []  # r pole
+
+        self.t_l = []
 
         self.debug = False
-        self.time_list =[]
         self.specific_debug = True
-  #cv = 1 2 .. [6 7 8]
+  # cv = 1 2 .. [6 7 8]
+
     def remove_extensive_points(self, x_l, y_l, z_l, over_x, over_y, over_z, filter_x, filter_y, filter_z, t_l):
         if self.debug:
             print("Passed length of lists in remove extensive_points", len(x_l), len(y_l), len(z_l), len(t_l))
@@ -262,7 +269,8 @@ class CSV_to_speed(object):
 
 
     def plot_xyz(self, x, y, z, time, title="Optitrack data analysis of"): 
-        ##THis makes more sense 
+        ##THis makes more sense
+        print("x", x, "\ny", y, "\nz", z)
         
         if self.specific_debug:
             print("Time list in plot xyz", time)
@@ -279,7 +287,21 @@ class CSV_to_speed(object):
         
         #0 = x*a+y*b+z*c 
 
-        x, y, z, new_time = self.remove_extensive_points(x, y, z, True, False, False, 2, -0.2, 1.9350396428571442, time)
+        # fig = plt.figure()
+        # ax = fig.add_subplot(111, projection='3d')
+        # ax.scatter(x, y, z, label="Optitrack FW estimate")
+
+
+        # filters are
+        # true = remove all above
+        # false = remove all below
+        # x y z are the hooking point +- some
+        x_cut = -1
+        y_cut = 1.03
+        z_cut = 1.5
+        # TODO these are not the correct cut off points! 08/05/19 - 08.40
+        x, y, z, new_time = self.remove_extensive_points(x, y, z, False, False, False, x_cut, y_cut, z_cut, time)
+        print(x, y, z)
         
         #SMall print loop
         counter = 0
@@ -290,36 +312,36 @@ class CSV_to_speed(object):
         
         
         hook_x = -0.18
-        hook_y = 0.21240174301 + 0.12 #The hook point is probably more forward
+        hook_y = 0.21240174301 
         hook_z = 2.120824179487176
         self.find_dist_to_hooking_point(x, y, z, 0.0, hook_x, hook_y, hook_z, new_time)
         fig = plt.figure()
         ax = fig.add_subplot(111, projection='3d')
         ax.scatter(x, y, z, label="Optitrack FW estimate")
-        ax.scatter(self.an_x, self.an_y, self.an_z, label ="Left pole marker") #an = right ano = left
+        ax.scatter(self.l_a_x, self.l_a_y, self.l_a_z, label ="Left pole marker") #an = right ano = left
         right_pole_com = [0.0, 0.0, 0.0]
         left_pole_com = [0.0, 0.0, 0.0]
         
 
 
-        1.9452805347985354, 0.3916005000000005, 2.0350396428571442
-        for x in self.an_x:
-            right_pole_com[0] += x/len(self.an_x)
+        # 1.9452805347985354, 0.3916005000000005, 2.0350396428571442
+        for x in self.l_a_x:
+            right_pole_com[0] += x/len(self.l_a_x)
 
-        for y in self.an_y:
-            right_pole_com[1] += y/len(self.an_x)
+        for y in self.l_a_y:
+            right_pole_com[1] += y/len(self.l_a_y)
 
-        for z in self.an_z:
-            right_pole_com[2] += z/len(self.an_z)
+        for z in self.l_a_z:
+            right_pole_com[2] += z/len(self.l_a_z)
 
-        for x in self.ano_x:
-            left_pole_com[0] += x/len(self.ano_x)
+        for x in self.r_a_x:
+            left_pole_com[0] += x/len(self.r_a_x)
 
-        for y in self.ano_y:
-            left_pole_com[1] += y/len(self.ano_x)
+        for y in self.r_a_y:
+            left_pole_com[1] += y/len(self.r_a_y)
 
-        for z in self.ano_z:
-            left_pole_com[2] += z/len(self.ano_z)
+        for z in self.r_a_z:
+            left_pole_com[2] += z/len(self.r_a_z)
 
         print("Right pole COM", right_pole_com)
         print("left pole COM", left_pole_com)
@@ -339,7 +361,7 @@ class CSV_to_speed(object):
             #print("Delta", ((left_pole_com[0]+right_pole_com[0])/50))
 
         ax.scatter(rope_l_x, rope_l_y, right_pole_com[2], label="Estimated rope")
-        ax.scatter(self.ano_x, self.ano_y, self.ano_z, label="Left pole marker")
+        ax.scatter(self.l_a_x, self.l_a_y, self.l_a_z, label="Left pole marker")
         ax.set_xlabel('x') #aa = 27 so we start at 26 for second pole
         ax.set_ylabel('y')
         ax.set_zlabel('z')
@@ -384,8 +406,6 @@ class CSV_to_speed(object):
             delta_t = t -last_t
             speed = delta_pos/delta_t
             speed_list.append(speed)
-        
-        
         '''
         dy = np.zeros(y.__len__(), np.float)
         dyy = np.zeros(y.__len__(), np.float)
@@ -430,21 +450,10 @@ class CSV_to_speed(object):
         :return:
         '''
         path = self.csv_folder_path + self.csv_files[0]
-        print('path:', path)
-        curr_time = 0.0
-        x_elem = 0
-        y_elem = 0
-        z_elem = 0
-        x_l = []
-        y_l = []
-        z_l = []
-        final_t = []
-        time_l = []
+        # print('path:', path)
         pos_l = []
         time_list = []
-        #an_x = []
-        #an_y = []
-        #an_z = []
+
         with open(path) as csv_file:
             csv_reader = csv.reader(csv_file, delimiter=',')
             line_count = 0
@@ -456,65 +465,71 @@ class CSV_to_speed(object):
                     self.frame_rate = row[7]
                 if line_count > 6:
                     time_list.append(row[1])
-                curr_time += 1 / float(self.frame_rate)
+                # curr_time = row[1]  # += 1 / float(self.frame_rate)
 
                 if line_count > 7:
-                    if row[6] is not '' and row[7] is not '' and row[8] is not '':
-                        self.an_x.append(float(row[6]))
-                        self.an_y.append(float(row[8]))
-                        self.an_z.append(float(row[7]))
-                
-                if line_count > 7:
-                    if row[26] is not '' and row[27] is not '' and row[28] is not '':
-                        self.ano_x.append(float(row[26]))
-                        self.ano_y.append(float(row[28]))
-                        self.ano_z.append(float(row[27])) #y is z and vice versa
-                
-                #if line_count == 1:
-                #    self.frame_rate = row[7]
-                
-                if line_count == 4:
-                    # print('{:>3}'.format(line_count), row)
-                    for i in range(len(row)):
-                        if row[i] == "drone":
-                            x_elem = i + 4
-                            y_elem = i + 5
-                            z_elem = i + 6
-                            t_elem = i - 42
-                            break
-                if line_count == 7:
-                    # print("xyz:", row[6:9])
-                    pass
-                if line_count >= 8:
-                    # print('{:>3}'.format(line_count), row[6:9])
-                    if row[x_elem] is not "":
-                        x = float(row[x_elem])
-                    else:
-                        x = x_l[-1]
-                        continue
-                    if row[y_elem] is not "":
-                        y = float(row[y_elem])
-                    else:
-                        y = y_l[-1]
-                        continue
-                    if row[z_elem] is not "":
-                        z = float(row[z_elem])
-                    else:
-                        z = z_l[-1]
-                        continue
-                    if row[t_elem] is not "":
-                        t = float(row[t_elem])
+                    # This is for left arm
+                    if row[6] is not '' and row[7] is not '' and row[8] is not '' and \
+                       row[38] is not '' and row[39] is not '' and row[40] is not '' and \
+                       row[58] is not '' and row[59] is not '' and row[60] is not '':
+                        self.fw_x.append(float(row[6]))   # FW
+                        self.fw_y.append(float(row[7]))
+                        self.fw_z.append(float(row[8]))
 
-                    x_l.append(x)
-                    y_l.append(y)
-                    z_l.append(z)
-                    final_t.append(t)
-                    time_l.append(curr_time)
-                    if line_count < 600:
-                        print("line_count", line_count)
-                    #t_list.append()
-         
-                    pos_l.append((x**2 + y**2 + z**2)**0.5)
+                        self.l_a_x.append(float(row[38]))   # left arm
+                        self.l_a_y.append(float(row[39]))
+                        self.l_a_z.append(float(row[40]))
+
+                        self.r_a_x.append(float(row[58]))  # right arm
+                        self.r_a_y.append(float(row[59]))
+                        self.r_a_z.append(float(row[60]))
+
+                        self.t_l.append(float(row[1]))      # time
+                        pos_l.append((self.fw_x[-1] ** 2 + self.fw_y[-1] ** 2 + self.fw_z[-1] ** 2) ** 0.5)
+
+                # if line_count == 4:
+                #     # print('{:>3}'.format(line_count), row)
+                #     for i in range(len(row)):
+                #         if row[i] == "drone":
+                #             x_elem = i + 4
+                #             y_elem = i + 5
+                #             z_elem = i + 6
+                #             t_elem = i - 42
+                #             break
+                #
+                # if line_count == 7:
+                #     # print("xyz:", row[6:9])
+                #     pass
+                # if line_count >= 8:
+                #     # print('{:>3}'.format(line_count), row[6:9])
+                #     if row[x_elem] is not "":
+                #         x = float(row[x_elem])
+                #     else:
+                #         x = x_l[-1]
+                #         continue
+                #     if row[y_elem] is not "":
+                #         y = float(row[y_elem])
+                #     else:
+                #         y = y_l[-1]
+                #         continue
+                #     if row[z_elem] is not "":
+                #         z = float(row[z_elem])
+                #     else:
+                #         z = z_l[-1]
+                #         continue
+                #     if row[t_elem] is not "":
+                #         t = float(row[t_elem])
+                #
+                #     x_l.append(x)
+                #     y_l.append(y)
+                #     z_l.append(z)
+                #     final_t.append(t)
+                #     time_l.append(curr_time)
+                #     if line_count < 600:
+                #         print("line_count", line_count)
+                #     #t_list.append()
+                #
+                #     pos_l.append((x**2 + y**2 + z**2)**0.5)
 
                     # print("vel", vel)
                     # old_vel = vel
@@ -525,7 +540,7 @@ class CSV_to_speed(object):
         #self.time_l 
 
         # self.plot_xyz(x_l, y_l, z_l, time_l)
-        self.plot_xyz(x_l, y_l, z_l, time_l)
+        self.plot_xyz(self.fw_x, self.fw_y, self.fw_z, self.t_l)
         #self.pos_to_vel_acc(time_l, z_l)
 
         # print(z_l[1])
