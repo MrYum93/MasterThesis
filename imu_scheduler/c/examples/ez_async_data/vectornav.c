@@ -1,15 +1,29 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <inttypes.h>
 
 /* Include files needed to use VnEzAsyncData. */
-#include "ezasyncdata.h"
+#include "vn/sensors/ezasyncdata.h"
 #include "vectornav.h"
+#include "vn/sensors.h"
+
+
 int processErrorReceived(char* errorMessage, VnError errorCode);
+void asciiAsyncMessageReceived(void *userData, VnUartPacket *packet, size_t runningIndex);
+
 VnEzAsyncData ez;
-VnError error = E_NONE;
+VnSensor vs;
+VnError error;
+
 size_t i = 0;
+size_t update_cnt_vec = 0;
 char strConversions[50];
+char modelNumber[30];
 float data;
+vec3f ypr;
+uint32_t oldHz, newHz;
+
+
 int imu_init(void){
 
 	char strConversions[50];
@@ -18,35 +32,116 @@ int imu_init(void){
 	/*const char SENSOR_PORT[] = "/dev/tty.usbserial-FTXXXXXX"; */ /* Mac OS X format for virtual (USB) serial port. */
 	/*const char SENSOR_PORT[] = "/dev/ttyS0"; */ /* CYGWIN format. Usually the Windows COM port number minus 1. This would connect to COM1. */
 	const uint32_t SENSOR_BAUDRATE = 115200;
-	printf("Did we get into init");
-	/* We call the initialize and connect method to connect with our VectorNav sensor. */
-	if ((error = VnEzAsyncData_initializeAndConnect(&ez, SENSOR_PORT, SENSOR_BAUDRATE)) != E_NONE)
-		return 1;/*processErrorReceived("Error connecting to sensor.", error);*/
+	
+	/* We first need to initialize our VnSensor structure. */
+	VnSensor_initialize(&vs);
+	
+	//* Now connect to our sensor. */
+	if ((error = VnSensor_connect(&vs, SENSOR_PORT, SENSOR_BAUDRATE)) != E_NONE)
+		return processErrorReceived("Error connecting to sensor.", error);
+
+	/* Let's query the sensor's model number. */
+	if ((error = VnSensor_readModelNumber(&vs, modelNumber, sizeof(modelNumber))) != E_NONE)
+		return processErrorReceived("Error reading model number.", error);
+	printf("Model Number: %s\n", modelNumber);
+
+	// /* Get the initial orientation data from the sensor. */
+	if ((error = VnSensor_readYawPitchRoll(&vs, &ypr)) != E_NONE)
+		return processErrorReceived("Error reading yaw pitch roll.", error);
+	str_vec3f(strConversions, ypr);
+	printf("Init YPR: %s\n", strConversions);
+	
+	/* Let's do some simple reconfiguration of the sensor. As it comes from the
+	 * factory, the sensor outputs asynchronous data at 40 Hz. For the DS we need 
+	 * will change this to 100 Hz for safety purposes. */
+	if ((error = VnSensor_readAsyncDataOutputFrequency(&vs, &oldHz)) != E_NONE)
+		return processErrorReceived("Error reading async data output frequency.", error);
+	printf("Old Async Frequency: %d Hz\n", oldHz);
+	if ((error = VnSensor_writeAsyncDataOutputFrequency(&vs, 50, true)) != E_NONE)
+		return processErrorReceived("Error writing async data output frequency.", error);
+	if ((error = VnSensor_readAsyncDataOutputFrequency(&vs, &newHz)) != E_NONE)
+		return processErrorReceived("Error reading async data output frequency.", error);
+	printf("New Async Frequency: %d Hz\n", newHz);
+			
+	/* You will need to define a method which has the appropriate
+	* signature for receiving notifications. This is implemented with the
+	* method asciiAsyncMessageReceived. Now we register the method with the
+	* VnSensor structure. */
+	VnSensor_registerAsyncPacketReceivedHandler(&vs, asciiAsyncMessageReceived, NULL);
+
+	/* setup complete now get the async data */
+	
 	return 0; /*Here 0 means its okay*/
 }
 
 float imu_update(void)
 {
-	VnCompositeData cd;
+	update_cnt_vec += 1;
 
-	cd = VnEzAsyncData_currentData(&ez);
-	data = cd.yawPitchRoll.c[0];
-	/*float fdata = atof(strConversions);*/
-	/*str_vec3f(strConversions, cd.yawPitchRoll);
-	printf("yaw %f", data);
-	
-	printf(strConversions[0]);
-	printf("Current YPR: %s\n", strConversions);*/
+	/* The sched runs at 10.000 Hz if we mod it with 100 the method runs
+	* with 100 Hz */
+	if((update_cnt_vec % 100) == 0)
+	{
+		/* nothing really happens here... */
+	}
+
 	return data;
+	
+	// VnCompositeData cd;
 
+	// cd = VnEzAsyncData_currentData(&ez);
+	// data = cd.yawPitchRoll.c[0];
+
+	// str_vec3f(strConversions, cd.yawPitchRoll);
+	// printf("from vectornav: %s\n", strConversions);
+	// /*float fdata = atof(strConversions);*/
+	// /*str_vec3f(strConversions, cd.yawPitchRoll);
+	// printf("yaw %f", data);
+	
+	// printf(strConversions[0]);
+	// printf("Current YPR: %s\n", strConversions);*/
+	// return data;
+	
 }
 
 void imu_quit(void)
 {
+	/* unregister the sensor */
+	VnSensor_unregisterAsyncPacketReceivedHandler(&vs);
 	printf ("app_quit() in vectornav.c called\n");
 }
 
+int processErrorReceived(char* errorMessage, VnError errorCode)
+{
+	char errorCodeStr[100];
+	strFromVnError(errorCodeStr, errorCode);
+	printf("%s\nERROR: %s\n", errorMessage, errorCodeStr);
+	return -1;
+}
 
+void asciiAsyncMessageReceived(void *userData, VnUartPacket *packet, size_t runningIndex)
+{
+	vec3f ypr;
+	char strConversions[50];
+
+	/* Silence 'unreferenced formal parameters' warning in Visual Studio. */
+	(userData);
+	(runningIndex);
+
+	/* Make sure we have an ASCII packet and not a binary packet. */
+	if (VnUartPacket_type(packet) != PACKETTYPE_ASCII)
+		return;
+
+	/* Make sure we have a VNYPR data packet. */
+	if (VnUartPacket_determineAsciiAsyncType(packet) != VNYPR)
+		return;
+
+	/* We now need to parse out the yaw, pitch, roll data. */
+	VnUartPacket_parseVNYPR(packet, &ypr);
+
+	/* then output the yaw data */
+	data = ypr.c[0];
+}
 
 /*int main(void)
 {
@@ -116,12 +211,6 @@ void imu_quit(void)
 	return 0;
 }
 
-int processErrorReceived(char* errorMessage, VnError errorCode)
-{
-	char errorCodeStr[100];
-	strFromVnError(errorCodeStr, errorCode);
-	printf("%s\nERROR: %s\n", errorMessage, errorCodeStr);
-	return -1;
-}
+
 */
 
