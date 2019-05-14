@@ -41,7 +41,8 @@
 #define true					1
 #define false					0
 #define IMU_INIT_OK		        0
-#define SCHED_INTERVAL		100
+/* running at 1.000.000, then having 1000 wimes it wait gives an overall frequency of 1.000 Hz */
+#define SCHED_INTERVAL		1000    
 
 /***************************************************************************/
 /* Pin defines */

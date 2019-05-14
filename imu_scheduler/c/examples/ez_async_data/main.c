@@ -50,6 +50,7 @@
 /*#include "app.h"*/
 
 #include "vectornav.h"
+#include "vel_est.h"
 
 /***************************************************************************/
 /* global variables */
@@ -58,20 +59,27 @@ static sigset_t wait_mask;
 
 
 float imu_response;
+double vel;
+double pos = 1;
+
 /***************************************************************************/
 void nullhandler(int signo)
 {
 }
 /***************************************************************************/
+
 /* handle CTRL-C gracefully */
 static void quit () /* do not add void here */
 {
 	/* perform application cleanup */
 	imu_quit();
+  est_vel_quit();
 	/* exit */
 	exit(EXIT_SUCCESS);
 }
+
 /***************************************************************************/
+
 static int sched_init (void)
 {
 	int err = false;
@@ -83,7 +91,6 @@ static int sched_init (void)
 	printf("sched, %d\n", sched_setscheduler(0, SCHED_FIFO, &my_sched_params));
 	if (! (sched_setscheduler(0, SCHED_FIFO, &my_sched_params)))
 	{
-		printf("Did we get into sched init?");
 		/* lock all pages in memory */
 		mlockall(MCL_CURRENT | MCL_FUTURE);
 
@@ -106,7 +113,9 @@ static int sched_init (void)
 		err = true;
 	return err;
 }
+
 /***************************************************************************/
+
 int main (int argc, char **argv)
 {
 	
@@ -116,21 +125,22 @@ int main (int argc, char **argv)
 	{
 		printf("***SCHED***\n");
 		/* initialize application */
-		if (imu_init() == IMU_INIT_OK)
-       		    
-
+		if (//imu_init() == IMU_INIT_OK &&
+        estVelInit() == VEL_EST_INIT_OK)
 		{
-			
-
-
 			while (1) //(!enc_stop) & (!stp_stop)
 			{
 				/* update application */
-				
-			
-			 	imu_response = imu_update();
-				printf("yaw %f \n", imu_response);
-				/* suspend until next event */
+			 	//imu_response = imu_update();
+				//printf("yaw %f \n", imu_response);
+				vel = est_vel_update(pos);
+
+        if(pos < 10000)
+          pos *= 2;
+        else
+          pos /= 3;
+        
+        /* suspend until next event */
 				sigsuspend(&wait_mask);
 			}
 		}

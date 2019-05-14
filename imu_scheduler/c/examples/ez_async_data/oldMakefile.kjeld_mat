@@ -1,0 +1,25 @@
+BIN = .
+NAME = ez_async_data
+OBJECTS = main.o vectornav.o vel_est.o
+
+CC = gcc
+INCLUDES = -I ../../include
+CFLAGS = -Wall
+LDFLAGS = -lm -lrt -lvnc -lpthread 
+LFLAGS  = -L ../../build
+BINARIES =  $(NAME)
+LIBS	= 
+CLEAN = clean
+
+all: $(BINARIES) cleanobj
+
+$(BIN)/$(NAME): $(OBJECTS)
+	$(CC) -o $@ $< $(LDFLAGS) $(LIBS) $(LFLAGS)
+
+cleanobj:
+	$(RM) */*.o
+	$(RM) *.o
+
+clean: cleanobj
+	$(RM) $(BINARIES)
+

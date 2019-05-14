@@ -22,7 +22,8 @@ int imu_init(void){
 	/* We call the initialize and connect method to connect with our VectorNav sensor. */
 	if ((error = VnEzAsyncData_initializeAndConnect(&ez, SENSOR_PORT, SENSOR_BAUDRATE)) != E_NONE)
 		return 1;/*processErrorReceived("Error connecting to sensor.", error);*/
-	return 0; /*Here 0 means its okay*/
+	
+  return 0; /*Here 0 means its okay*/
 }
 
 float imu_update(void)
