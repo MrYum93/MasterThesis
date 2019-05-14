@@ -1,6 +1,13 @@
-.idea/*
 *.pyc
+*.out
+*.o
+*.a
+
+.vscode/*
+.idea/*
+
+logs/*
+plans/*
 data/*
 CAD/*
-*.out
-.vscode/*
+

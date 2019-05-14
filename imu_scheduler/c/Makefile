@@ -22,7 +22,7 @@ SOURCES = \
     src/vn/xplat/event.c \
     src/vn/xplat/serialport.c \
     src/vn/xplat/thread.c \
-    src/vn/xplat/time.c
+    src/vn/xplat/time.c 
 				
 # Set the object file names, with the source directory stripped
 # from the path, and the build path prepended in its place			
