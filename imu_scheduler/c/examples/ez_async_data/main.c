@@ -38,6 +38,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <time.h>
+#include <math.h>
 #include <sched.h>
 #include <sys/mman.h>
 #include <sys/time.h>
@@ -60,7 +61,7 @@ static sigset_t wait_mask;
 
 float imu_response;
 double vel;
-double pos = 1;
+double yaw = 0;
 
 /***************************************************************************/
 void nullhandler(int signo)
@@ -126,19 +127,21 @@ int main (int argc, char **argv)
 		printf("***SCHED***\n");
 		/* initialize application */
 		if (//imu_init() == IMU_INIT_OK &&
-        estVelInit() == VEL_EST_INIT_OK)
+        vel_est_init() == VEL_EST_INIT_OK)
 		{
 			while (1) //(!enc_stop) & (!stp_stop)
 			{
 				/* update application */
 			 	//imu_response = imu_update();
 				//printf("yaw %f \n", imu_response);
-				vel = est_vel_update(pos);
+				vel = vel_est_update(yaw);
 
-        if(pos < 10000)
-          pos *= 2;
+        if(yaw < (M_PI*2))
+          yaw += 0.01;
         else
-          pos /= 3;
+          yaw = 0;
+
+        //printf("vel: %f\n", vel);
         
         /* suspend until next event */
 				sigsuspend(&wait_mask);
