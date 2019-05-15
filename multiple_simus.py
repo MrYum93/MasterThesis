@@ -1232,7 +1232,7 @@ class ar_model(object):
             #after 1 run saving
             # theta err save and plotplotting_list.append(self.calc_theta_err()) #also saves the list
             #self.plot_plane_acc()
-            #self.plot_fw_raw()
+            self.plot_fw_raw()
             #self.est_vel_y_alligned(self.left_arm_theta_list)
             plotting_list.append(self.calc_theta_err())#plotting_list.append(self.plane_acc_l)
             
