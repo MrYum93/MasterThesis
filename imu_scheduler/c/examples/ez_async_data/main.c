@@ -146,7 +146,7 @@ int main (int argc, char **argv)
         if(yaw < (M_PI*2))
           yaw += M_PI/1000;
         else
-          yaw += M_PI;
+          yaw = 0;
         
         // printf("yaw: %f\n", yaw);
         
