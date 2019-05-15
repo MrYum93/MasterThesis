@@ -14,7 +14,6 @@ void asciiAsyncMessageReceived(void *userData, VnUartPacket *packet, size_t runn
 VnEzAsyncData ez;
 VnSensor vs;
 VnError error;
-
 size_t i = 0;
 size_t update_cnt_vec = 0;
 char strConversions[50];
