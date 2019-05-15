@@ -6,6 +6,7 @@
 .vscode/*
 .idea/*
 
+build/*
 logs/*
 plans/*
 data/*

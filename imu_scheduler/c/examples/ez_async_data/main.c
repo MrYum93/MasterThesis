@@ -60,8 +60,10 @@ static sigset_t wait_mask;
 
 
 float imu_response;
+double pos = 0;
 double vel;
 double yaw = 0;
+
 
 /***************************************************************************/
 void nullhandler(int signo)
@@ -136,12 +138,17 @@ int main (int argc, char **argv)
 				//printf("yaw %f \n", imu_response);
 				vel = vel_est_update(yaw);
 
+        // if(pos < 3000)
+        //   pos += 1.0;
+        // else
+        //   pos = 0.0;
+
         if(yaw < (M_PI*2))
-          yaw += 0.01;
+          yaw += M_PI/1000;
         else
           yaw = 0;
-
-        //printf("vel: %f\n", vel);
+        
+        // printf("yaw: %f\n", yaw);
         
         /* suspend until next event */
 				sigsuspend(&wait_mask);
