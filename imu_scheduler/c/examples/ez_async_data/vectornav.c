@@ -14,7 +14,6 @@ void asciiAsyncMessageReceived(void *userData, VnUartPacket *packet, size_t runn
 VnEzAsyncData ez;
 VnSensor vs;
 VnError error;
-
 size_t i = 0;
 size_t update_cnt_vec = 0;
 char strConversions[50];
@@ -32,7 +31,6 @@ int imu_init(void){
 	/*const char SENSOR_PORT[] = "/dev/tty.usbserial-FTXXXXXX"; */ /* Mac OS X format for virtual (USB) serial port. */
 	/*const char SENSOR_PORT[] = "/dev/ttyS0"; */ /* CYGWIN format. Usually the Windows COM port number minus 1. This would connect to COM1. */
 	const uint32_t SENSOR_BAUDRATE = 115200;
-<<<<<<< HEAD
 	
 	/* We first need to initialize our VnSensor structure. */
 	VnSensor_initialize(&vs);
@@ -73,14 +71,6 @@ int imu_init(void){
 	/* setup complete now get the async data */
 	
 	return 0; /*Here 0 means its okay*/
-=======
-	printf("Did we get into init");
-	/* We call the initialize and connect method to connect with our VectorNav sensor. */
-	if ((error = VnEzAsyncData_initializeAndConnect(&ez, SENSOR_PORT, SENSOR_BAUDRATE)) != E_NONE)
-		return 1;/*processErrorReceived("Error connecting to sensor.", error);*/
-	
-  return 0; /*Here 0 means its okay*/
->>>>>>> ff11f49c434522dceb063cc1e0a38c3b354efa15
 }
 
 float imu_update(void)
