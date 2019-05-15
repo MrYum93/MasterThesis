@@ -60,8 +60,10 @@ static sigset_t wait_mask;
 
 
 float imu_response;
+double pos = 0;
 double vel;
 double yaw = 0;
+
 
 /***************************************************************************/
 void nullhandler(int signo)
@@ -134,12 +136,17 @@ int main (int argc, char **argv)
 				/* update application */
 			 	//imu_response = imu_update();
 				//printf("yaw %f \n", imu_response);
-				vel = vel_est_update(yaw);
+				vel = vel_est_update(pos);
 
-        if(yaw < (M_PI*2))
-          yaw += 0.01;
+        if(pos < 3000)
+          pos += 1.0;
         else
-          yaw = 0;
+          pos = 0.0;
+
+        // if(yaw < (M_PI*2))
+        //   yaw += M_PI/10;
+        // else
+        //   yaw = 0;
 
         //printf("vel: %f\n", vel);
         

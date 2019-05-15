@@ -13,12 +13,11 @@ double neutral_rope_length = 2.215; /* measured in m */
 double pos_l[MAXITEMS];
 
 int est_vel_cnt = 0;
-int i, tmp, array_pos;
-int n = MAXITEMS;
 double a_y, a_x, r_y, y_pos_est;
 double start_ang, yaw_offset, neutral_yaw;
 double pos;
 double vel = 0.0;
+double return_vel;
 struct timespec time_now;
 struct timespec time_last;
 volatile long ms_now = 0;
@@ -29,18 +28,23 @@ volatile long signed t_last = 0;
 
 /* This method is used to shift the pos list, and then insert a 
 *  double element to a list and then */ 
-double pos_insert(double pos){  
+double * insert(double * list_, double elem_){
+  int n = sizeof(list_)/sizeof(list_[0]);
+  int i;
+  int tmp;
   for(i=0;i<n-1;i++)
   {
-    pos_l[i]=pos_l[i+1];
+    list_[i]=list_[i+1];
   }
-  pos_l[n-1]=pos;
+  list_[n-1]=elem_;
+
+  return pos_l;
 }
 
-double est_pos(double yaw, double neutral_yaw)
+double est_pos(double yaw_, double neutral_yaw_)
 {
-  double rad_yaw = yaw;
-  double rad_neutral_yaw = neutral_yaw;
+  double rad_yaw = yaw_;
+  double rad_neutral_yaw = neutral_yaw_;
   rad_yaw *= M_PI/180;
   rad_neutral_yaw  *= M_PI/180;
 
@@ -64,24 +68,24 @@ double neutral_yaw_calc(double yaw)
 {
    /*todo here:
    * calc the neutra yaw based on a sliding window */
-  neutral_yaw = yaw + (M_PI/2);
+  neutral_yaw = yaw - (M_PI/2);
   return neutral_yaw;
 }
 
-double vel_est_update(double yaw)
+double vel_est_update(double yaw_)
 {
   est_vel_cnt += 1;
 
   if((est_vel_cnt % 100) == 0)
   {
-  /* State machine that goes from monitor where the neutral yaw is updated, 
-  * and goes to vel estimate of FW */
-  neutral_yaw = neutral_yaw_calc(yaw);
-  pos = est_pos(yaw, neutral_yaw);
-  vel = vel_from_pos(pos);
+    // /* State machine that goes from monitor where the neutral yaw is updated, 
+    // * and goes to vel estimate of FW */
+    // neutral_yaw = neutral_yaw_calc(yaw_);
+    // pos = est_pos(yaw_, neutral_yaw);
+    vel = vel_from_pos(yaw_);
+    // return_vel = vel;//*1000.0;
   }
-  printf("vel in submain, %f\n", vel);
-  double return_vel = vel*10.0;
+  // printf("vel in submain, %f\n", pos);
 
   return return_vel;
 }
@@ -100,10 +104,10 @@ double vel_from_pos(double pos)
   
   double sub_vel;
 
-  pos_insert(pos);
+  insert(pos_l, pos);
   /* this makes it so elem 0 is the newest and elem 2 is oldest */
-  /* printf("pos 0 %f\n", pos_l[0]);
-  printf("pos 2 %f\n\n", pos_l[2]); */
+  printf("pos 0 %f\n", pos_l[0]);
+  printf("pos 2 %f\n\n", pos_l[2]);
   sub_vel = (pos_l[2]-pos_l[0])/(2*(t_now-t_last));
   /* printf("h %lu\n", (t_now-t_last));
   printf("vel 0 %f\n\n\n", vel);*/
