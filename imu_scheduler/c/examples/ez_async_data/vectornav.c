@@ -74,6 +74,7 @@ int imu_init(void){
 	if ((error = VnSensor_readAsyncDataOutputFrequency(&vs, &newHz)) != E_NONE)
 		return processErrorReceived("Error reading async data output frequency.", error);
 	printf("New Async Frequency: %d Hz\n", newHz);
+
 	/*Next line is an attempt to fix the boot problems*/
 	if ((error = VnSensor_readVpeBasicControl(&vs, &vpeReg)) != E_NONE)
 		return processErrorReceived("Error reading VPE basic control.", error);
@@ -81,7 +82,6 @@ int imu_init(void){
 	vpeReg.headingMode = VNHEADINGMODE_ABSOLUTE;
 	if ((error = VnSensor_writeVpeBasicControl(&vs, vpeReg, true)) != E_NONE)
 		return processErrorReceived("Error writing VPE basic control.", error);
-
 
 	/* First let's configure the sensor to output a known asynchronous data
 	 * message type. */
@@ -112,7 +112,7 @@ float imu_update(void)
 	{
 		/* nothing really happens here... */
 	}
-	printf("yaw %f\n", data);
+	//printf("yaw %f\n", data);
 	write_to_file(data);
 	return data;
 	
@@ -138,7 +138,7 @@ void imu_quit(void)
 	/* unregister the sensor */
 	VnSensor_unregisterAsyncPacketReceivedHandler(&vs);
 	printf ("app_quit() in vectornav.c called\n");
-   	fclose(fptr);
+  fclose(fptr);
 }
 
 void write_to_file(double yaw)
@@ -178,7 +178,7 @@ void asciiAsyncMessageReceived(void *userData, VnUartPacket *packet, size_t runn
 	VnUartPacket_parseVNYPR(packet, &ypr);
 
 	/* then output the yaw data */
-	data = ypr.c[0];
+	data = -(ypr.c[0] * M_PI/180);
 }
 
 void asciiOrBinaryAsyncMessageReceived(void *userData, VnUartPacket *packet, size_t runningIndex)

@@ -135,20 +135,27 @@ int main (int argc, char **argv)
 			{
 				/* update application */
 			 	imu_response = imu_update();
-				//printf("yaw %f \n", imu_response);
-				vel = vel_est_update(yaw);
+				// printf("yaw %f \n", imu_response);
+        
+        /* */
+        // imu_response -= M_PI;
+        if(imu_response < -M_PI)
+          imu_response += M_PI;
+
+				// printf("yaw %f \n\n", imu_response);
+				vel = vel_est_update(imu_response);
 
         // if(pos < 3000)
         //   pos += 1.0;
         // else
         //   pos = 0.0;
 
-        if(yaw < (M_PI*2))
-          yaw += M_PI/1000;
-        else
-          yaw = 0;
+        // if(yaw < (M_PI*2))
+        //   yaw += M_PI/1000;
+        // else
+        //   yaw = 0;
         
-        // printf("yaw: %f\n", yaw);
+        // printf("vel: %f\n", vel);
         
         /* suspend until next event */
 				sigsuspend(&wait_mask);

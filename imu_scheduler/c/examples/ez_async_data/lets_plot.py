@@ -20,12 +20,18 @@ class Analyzer:
         self.time_list = []
         self.refined_time = [] #List which fixes the bug mentioned in scale seconds
         self.yaw_list = []
+        self.pos_list = []
+        self.vel_list = []
         
     def read_file(self): #The wierd IMU code i write first writes the yaw, time
         for line in self.f:
+            if line[0] == 't':
+              continue
             line_list = line.split(',')
             self.time_list.append(float(line_list[0]))
             self.yaw_list.append(float(line_list[1]))
+            self.pos_list.append(float(line_list[2]))
+            self.vel_list.append(float(line_list[3]))
 
     def scale_seconds(self): #I found another bug in the IMU program, the seconds just rollback after 60, to fix this we need to count
         minute_counter = -1
@@ -44,16 +50,18 @@ class Analyzer:
 
     def simple_plot(self): #Lets plot time versus yaw from the file provided at the command line
         fig = plt.figure
-        plt.plot(self.refined_time[200:], self.yaw_list[200:])
+        plt.plot(self.time_list[0:], self.pos_list[0:], 'g-', label='pos')
+        plt.plot(self.time_list[0:], self.vel_list[0:], 'b-,', label='vel')
         print("yaw list", self.yaw_list[0])
         plt.title("Yaw readings from stationary IMU")
         plt.ylabel('Yaw [degrees]')
         plt.xlabel("Time [seconds]")
+        plt.legend()
         plt.show()
 
     def main(self):
         self.read_file()
-        self.scale_seconds()
+        #self.scale_seconds()
         self.simple_plot()
 
 

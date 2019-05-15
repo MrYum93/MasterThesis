@@ -19,7 +19,8 @@ double neutral_rope_length = 2.215; /* measured in m */
 double pos_l[MAXITEMS];
 double s_w_l[WINDOW_SIZE];
 
-vel_state state = REGISTER_VEL;// UPDATE_YAW;
+vel_state state = UPDATE_YAW;//REGISTER_VEL;
+FILE *fptr_vel;
 
 int est_vel_upd_cnt = 0;
 int i, tmp, array_pos;
@@ -31,10 +32,13 @@ double vel = 0.0;
 double return_vel = 0.0;
 struct timespec time_now;
 struct timespec time_last;
+struct timespec time_f;
 volatile long ms_now = 0;
 volatile long ms_last = 0;
+volatile long ms_f = 0;
 volatile long signed t_now = 0;
 volatile long signed t_last = 0;
+volatile long signed t_f = 0;
 
 
 /* This method is used to shift the pos list, and then insert a 
@@ -49,6 +53,16 @@ void pos_insert(double pos_){
   pos_l[n-1]=pos_;
 }
 
+void write_to_file_2(double yaw_, double pos_, double vel_)
+{
+	clock_gettime(CLOCK_MONOTONIC, &time_f);
+  ms_f = round(time_f.tv_nsec / 1000000);
+  t_f = 1000 * time_f.tv_sec + ms_f;
+
+  printf("write to file\n");
+	fprintf(fptr_vel,"%li, %f, %f, %f\n",t_f, yaw_, pos_, vel_);
+}
+
 void sliding_window_insert(double yaw_){
   int n = WINDOW_SIZE;
 
@@ -61,24 +75,30 @@ void sliding_window_insert(double yaw_){
 
 double est_pos(double yaw_, double neutral_yaw_)
 {
-  double rad_yaw = yaw_ * M_PI/180;
-  double rad_neutral_yaw = neutral_yaw_ * M_PI/180;
+  double rad_yaw = yaw_;
+  double rad_neutral_yaw = neutral_yaw_;
+  /* printf("yaw %f\n", rad_yaw);
+  printf("neutral yaw %f\n", rad_neutral_yaw);
+   */ 
 
-  yaw_offset = rad_neutral_yaw - rad_yaw - arm_ang;
-
-  // printf("offset, %f\n", yaw_offset);
-
+  yaw_offset = rad_yaw - rad_neutral_yaw - arm_ang;
+  /* printf("offset, %f\n", yaw_offset);
+ */
   /* arm end pos */
-  a_y = arm_length * sin(yaw_offset);
+  a_y = fabs(arm_length * sin(yaw_offset));
   a_x = arm_length * cos(yaw_offset);
-
+  /* printf("a_y %f\n", a_y);
+  printf("a_x %f\n", a_x);
+   */
   /* rope in y dir */
-  r_y = sqrt(fabs(((neutral_rope_length * neutral_rope_length - \
-                   ((half_dist_poles - a_x ) * (half_dist_poles - a_x))))));
+  r_y = sqrt(fabs(((pow(neutral_rope_length, 2) - (pow((half_dist_poles - a_x ),2))))));
   
-  y_pos_est = arm_length - (a_y - r_y);
+  if(yaw_offset < 0)
+    y_pos_est = arm_length - (a_y - r_y);
+  else
+    y_pos_est = arm_length + (a_y + r_y);
   
-//  printf("y_pos_est, %f\n", y_pos_est);
+  //printf("y_pos_est, %f\n", y_pos_est);
 
   return y_pos_est;
 }
@@ -98,11 +118,10 @@ double neutral_yaw_calc(double yaw_)
     }
     avg = sum / WINDOW_SIZE;
   }
-  /* printf("sliding win 0 = %f\n", s_w_l[0]);
-  printf("cur yaw = %f\n", yaw_);
-  printf("cur yaw window = %f\n", s_w_l[WINDOW_SIZE-1]);
-  printf("avg = %f\n", avg);
-  */
+  // printf("sliding win 0 = %f\n", s_w_l[0]);
+  // printf("cur yaw = %f\n", yaw_);
+  // printf("avg = %f\n\n", avg);
+  
 
   return avg;
 }
@@ -111,6 +130,7 @@ double vel_est_update(double yaw_)
 {
   est_vel_upd_cnt += 1;
 
+  /* running at 10.000 Hz, 10.000/100 = 100Hz */
   if((est_vel_upd_cnt % 100) == 0)
   {
     /* State machine that goes from monitor where the neutral yaw is updated, 
@@ -118,55 +138,66 @@ double vel_est_update(double yaw_)
 
     switch (state)
     {
-    case UPDATE_YAW:
-      /* neutral yaw takes care of updating the neutral yaw */
-      neutral_yaw = neutral_yaw_calc(yaw_);
+      case UPDATE_YAW:
+        /* neutral yaw takes care of updating the neutral yaw */
+        neutral_yaw = neutral_yaw_calc(yaw_);
 
-      vel = vel_from_pos(yaw_);
-      /* this thresh needs tp be updated to the actual thresh */
-      if (vel >= M_PI/180){
-        state = REGISTER_VEL;
-      }
+        vel = vel_from_pos(yaw_);
+        if(vel_cnt >= 3){
+          // printf("vel: %f\n\n", vel);
+          /* this thresh needs to be updated to the actual thresh */
+          if (vel >= (M_PI/180)/5){
+            state = REGISTER_VEL;
+            vel_cnt = 0;
+          }
+        }
+        else
+          vel_cnt += 1;      
+        
+        break;
+      case REGISTER_VEL:
+        pos = est_pos(yaw_, neutral_yaw);
+        vel = vel_from_pos(pos) * 1000; /* times 1.000 to go from ms to s */
+        if(vel_cnt >= 3){
+          return_vel = vel;
+        }
+        else
+          vel_cnt += 1;
+        
+        break;
+      case FINISHED:
+        break;
+      default:
+        break;
+    }
 
-      break;
-    case REGISTER_VEL:
-      pos = est_pos(yaw_, neutral_yaw);
-      vel = vel_from_pos(pos);
-      if(vel_cnt >= 3){
-        return_vel = vel;
-      }     
-      vel_cnt += 1;
-      
-      break;
-    case FINISHED:
-      break;
-    default:
-      break;
-   }
+    write_to_file_2(yaw_, pos, return_vel);
     // pos = est_pos(yaw_, neutral_yaw);
     // vel = vel_from_pos(pos);
-    // return_vel = vel;//*1000.0;
-     printf("pos in submain, %f\n", pos);
+    printf("vel in submain, %f\n", return_vel);
   }
 
-  return pos;
+  return return_vel;
 }
 
 
 int vel_est_init(void)
 {
+  fptr_vel = fopen("vel.txt","w");
+  fprintf(fptr_vel,"time, yaw, pos, vel\n");
+
   return 0;
 }
 
-double vel_from_pos(double pos)
+double vel_from_pos(double pos_)
 {
   clock_gettime(CLOCK_MONOTONIC, &time_now);
-  ms_now = round(time_now.tv_nsec / 1000000); /* is nano sec with 1 billion and mili with 1 mil*/
+  ms_now = round(time_now.tv_nsec / 1000000); /* is nano sec with 1 billion, and mili with 1 mil*/
   t_now = 1000 * time_now.tv_sec + ms_now;//time_now.tv_nsec;  
   
   double sub_vel;
 
-  pos_insert(pos);
+  pos_insert(pos_);
   /* this makes it so elem 0 is the newest and elem 2 is oldest */
   /* printf("pos 0 %f\n", pos_l[0]);
   printf("pos 2 %f\n\n", pos_l[2]); */
@@ -180,6 +211,7 @@ double vel_from_pos(double pos)
 
 void est_vel_quit(void)
 {
+  fclose(fptr_vel);
   printf("quit est_vel!");
 }
 
