@@ -131,7 +131,7 @@ double vel_est_update(double yaw_)
   est_vel_upd_cnt += 1;
 
   /* running at 10.000 Hz, 10.000/100 = 100Hz */
-  if((est_vel_upd_cnt % 100) == 0)
+  if((est_vel_upd_cnt % 10) == 0)
   {
     /* State machine that goes from monitor where the neutral yaw is updated, 
     * and goes to vel estimate of FW */
@@ -143,7 +143,7 @@ double vel_est_update(double yaw_)
         neutral_yaw = neutral_yaw_calc(yaw_);
 
         vel = vel_from_pos(yaw_);
-        if(vel_cnt >= 3){
+        if(vel_cnt >= 1){
           // printf("vel: %f\n\n", vel);
           /* this thresh needs to be updated to the actual thresh */
           if (vel >= (M_PI/180)/5){
@@ -151,18 +151,24 @@ double vel_est_update(double yaw_)
             vel_cnt = 0;
           }
         }
-        else
+        else{
+          vel = vel_from_pos(yaw_);
+          vel = vel_from_pos(yaw_);
           vel_cnt += 1;      
+        }
         
         break;
       case REGISTER_VEL:
         pos = est_pos(yaw_, neutral_yaw);
         vel = vel_from_pos(pos) * 1000; /* times 1.000 to go from ms to s */
-        if(vel_cnt >= 3){
+        if(vel_cnt >= 1){
           return_vel = vel;
         }
-        else
+        else{
+          pos = est_pos(yaw_, neutral_yaw);
+          pos = est_pos(yaw_, neutral_yaw);
           vel_cnt += 1;
+        }
         
         break;
       case FINISHED:
