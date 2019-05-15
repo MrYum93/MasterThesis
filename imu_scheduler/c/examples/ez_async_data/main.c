@@ -136,19 +136,19 @@ int main (int argc, char **argv)
 				/* update application */
 			 	//imu_response = imu_update();
 				//printf("yaw %f \n", imu_response);
-				vel = vel_est_update(pos);
+				vel = vel_est_update(yaw);
 
-        if(pos < 3000)
-          pos += 1.0;
-        else
-          pos = 0.0;
-
-        // if(yaw < (M_PI*2))
-        //   yaw += M_PI/10;
+        // if(pos < 3000)
+        //   pos += 1.0;
         // else
-        //   yaw = 0;
+        //   pos = 0.0;
 
-        //printf("vel: %f\n", vel);
+        if(yaw < (M_PI*2))
+          yaw += M_PI/1000;
+        else
+          yaw += M_PI;
+        
+        // printf("yaw: %f\n", yaw);
         
         /* suspend until next event */
 				sigsuspend(&wait_mask);
