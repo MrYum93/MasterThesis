@@ -36,9 +36,7 @@ class Analyzer:
             if first:
                 ref = time
                 first = False
-            if count == 5481:
-                count = 0
-            scaled_time = time-ref+(count/5481)
+            scaled_time = (time-ref)/1000
 
             
             #print(int(time), minute_counter, scaled_time)
@@ -48,7 +46,7 @@ class Analyzer:
         fig = plt.figure
         plt.plot(self.refined_time[200:], self.yaw_list[200:])
         print("yaw list", self.yaw_list[0])
-        title = "Yaw in function of time of the file %s" %(self.args.n)
+        plt.title("Yaw readings from stationary IMU")
         plt.ylabel('Yaw [degrees]')
         plt.xlabel("Time [seconds]")
         plt.show()

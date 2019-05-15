@@ -10,10 +10,14 @@
 
 int processErrorReceived(char* errorMessage, VnError errorCode);
 void asciiAsyncMessageReceived(void *userData, VnUartPacket *packet, size_t runningIndex);
-
+void asciiOrBinaryAsyncMessageReceived(void *userData, VnUartPacket *packet, size_t runningIndex);
 VnEzAsyncData ez;
 VnSensor vs;
 VnError error;
+VpeBasicControlRegister vpeReg;
+VnAsciiAsync asyncType;
+BinaryOutputRegister bor;
+
 size_t i = 0;
 size_t update_cnt_vec = 0;
 char strConversions[50];
@@ -21,10 +25,17 @@ char modelNumber[30];
 float data;
 vec3f ypr;
 uint32_t oldHz, newHz;
-
+/*Write time and yaw to file*/
+FILE *fptr;
+struct timespec time_now;
+struct timespec time_last; 
+volatile long ms = 0;
+volatile long mse_last = 0;
+volatile long signed t = 0;
+volatile long signed ti_last = 0;
 
 int imu_init(void){
-
+	fptr = fopen("imu_stationary_long.txt","w");
 	char strConversions[50];
 	
 	const char SENSOR_PORT[] = "/dev/ttyUSB0"; /**/ /* Linux format for virtual (USB) serial port. */
@@ -56,11 +67,29 @@ int imu_init(void){
 	if ((error = VnSensor_readAsyncDataOutputFrequency(&vs, &oldHz)) != E_NONE)
 		return processErrorReceived("Error reading async data output frequency.", error);
 	printf("Old Async Frequency: %d Hz\n", oldHz);
-	if ((error = VnSensor_writeAsyncDataOutputFrequency(&vs, 50, true)) != E_NONE)
+	//if ((error = VnSensor_writeAsyncDataOutputFrequency(&vs, 2, true)) != E_NONE)
+	//	return processErrorReceived("Error writing async data output frequency.", error);
+	if ((error = VnSensor_writeAsyncDataOutputFrequency(&vs, 100, true)) != E_NONE)
 		return processErrorReceived("Error writing async data output frequency.", error);
 	if ((error = VnSensor_readAsyncDataOutputFrequency(&vs, &newHz)) != E_NONE)
 		return processErrorReceived("Error reading async data output frequency.", error);
 	printf("New Async Frequency: %d Hz\n", newHz);
+	/*Next line is an attempt to fix the boot problems*/
+	if ((error = VnSensor_readVpeBasicControl(&vs, &vpeReg)) != E_NONE)
+		return processErrorReceived("Error reading VPE basic control.", error);
+	strFromHeadingMode(strConversions, vpeReg.headingMode);
+	vpeReg.headingMode = VNHEADINGMODE_ABSOLUTE;
+	if ((error = VnSensor_writeVpeBasicControl(&vs, vpeReg, true)) != E_NONE)
+		return processErrorReceived("Error writing VPE basic control.", error);
+
+
+	/* First let's configure the sensor to output a known asynchronous data
+	 * message type. */
+	if ((error = VnSensor_writeAsyncDataOutputType(&vs, VNYPR, true)) != E_NONE)
+		return processErrorReceived("Error writing to async data output type.", error);
+	if ((error = VnSensor_readAsyncDataOutputType(&vs, &asyncType)) != E_NONE)
+		return processErrorReceived("Error reading async data output type.", error);
+	strFromVnAsciiAsync(strConversions, asyncType);
 			
 	/* You will need to define a method which has the appropriate
 	* signature for receiving notifications. This is implemented with the
@@ -83,7 +112,8 @@ float imu_update(void)
 	{
 		/* nothing really happens here... */
 	}
-
+	printf("yaw %f\n", data);
+	write_to_file(data);
 	return data;
 	
 	// VnCompositeData cd;
@@ -108,6 +138,15 @@ void imu_quit(void)
 	/* unregister the sensor */
 	VnSensor_unregisterAsyncPacketReceivedHandler(&vs);
 	printf ("app_quit() in vectornav.c called\n");
+   	fclose(fptr);
+}
+
+void write_to_file(double yaw)
+{
+	clock_gettime(CLOCK_MONOTONIC, &time_last);
+  	mse_last = round(time_last.tv_nsec / 1000000);
+  	ti_last = 1000 * time_last.tv_sec + mse_last; /*t last is the current time*/
+	fprintf(fptr,"%d, %f\n",ti_last, yaw);
 }
 
 int processErrorReceived(char* errorMessage, VnError errorCode)
@@ -122,7 +161,7 @@ void asciiAsyncMessageReceived(void *userData, VnUartPacket *packet, size_t runn
 {
 	vec3f ypr;
 	char strConversions[50];
-
+	//printf("Async msg recieved");
 	/* Silence 'unreferenced formal parameters' warning in Visual Studio. */
 	(userData);
 	(runningIndex);
@@ -140,6 +179,58 @@ void asciiAsyncMessageReceived(void *userData, VnUartPacket *packet, size_t runn
 
 	/* then output the yaw data */
 	data = ypr.c[0];
+}
+
+void asciiOrBinaryAsyncMessageReceived(void *userData, VnUartPacket *packet, size_t runningIndex)
+{
+	vec3f ypr;
+	char strConversions[50];
+
+	/* Silence 'unreferenced formal parameters' warning in Visual Studio. */
+	(userData);
+	(runningIndex);
+
+	if (VnUartPacket_type(packet) == PACKETTYPE_ASCII && VnUartPacket_determineAsciiAsyncType(packet) == VNYPR)
+	{
+		VnUartPacket_parseVNYPR(packet, &ypr);
+		str_vec3f(strConversions, ypr);
+		printf("ASCII Async YPR: %s\n", strConversions);
+
+		return;
+	}
+
+	if (VnUartPacket_type(packet) == PACKETTYPE_BINARY)
+	{
+		uint64_t timeStartup;
+
+		/* First make sure we have a binary packet type we expect since there
+		 * are many types of binary output types that can be configured. */
+		if (!VnUartPacket_isCompatible(packet,
+			COMMONGROUP_TIMESTARTUP | COMMONGROUP_YAWPITCHROLL,
+			TIMEGROUP_NONE,
+			IMUGROUP_NONE,
+			GPSGROUP_NONE,
+			ATTITUDEGROUP_NONE,
+			INSGROUP_NONE,
+      GPSGROUP_NONE))
+			/* Not the type of binary packet we are expecting. */
+			return;
+
+		/* Ok, we have our expected binary output packet. Since there are many
+		 * ways to configure the binary data output, the burden is on the user
+		 * to correctly parse the binary packet. However, we can make use of
+		 * the parsing convenience methods provided by the Packet structure.
+		 * When using these convenience methods, you have to extract them in
+		 * the order they are organized in the binary packet per the User Manual. */
+		timeStartup = VnUartPacket_extractUint64(packet);
+		ypr = VnUartPacket_extractVec3f(packet);
+
+		str_vec3f(strConversions, ypr);
+		printf("Binary Async TimeStartup: %" PRIu64 "\n", timeStartup);
+		printf("Binary Async YPR: %s\n", strConversions);
+
+		return;
+	}
 }
 
 /*int main(void)

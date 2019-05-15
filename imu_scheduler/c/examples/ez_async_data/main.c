@@ -126,13 +126,13 @@ int main (int argc, char **argv)
 	{
 		printf("***SCHED***\n");
 		/* initialize application */
-		if (//imu_init() == IMU_INIT_OK &&
+		if (imu_init() == IMU_INIT_OK &&
         vel_est_init() == VEL_EST_INIT_OK)
 		{
 			while (1) //(!enc_stop) & (!stp_stop)
 			{
 				/* update application */
-			 	//imu_response = imu_update();
+			 	imu_response = imu_update();
 				//printf("yaw %f \n", imu_response);
 				vel = vel_est_update(yaw);
 
