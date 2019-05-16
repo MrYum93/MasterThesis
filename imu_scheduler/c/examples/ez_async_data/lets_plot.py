@@ -50,8 +50,8 @@ class Analyzer:
 
     def simple_plot(self): #Lets plot time versus yaw from the file provided at the command line
         fig = plt.figure
-        plt.plot(self.time_list[0:], self.pos_list[0:], 'g-', label='pos')
-        plt.plot(self.time_list[0:], self.vel_list[0:], 'b-,', label='vel')
+        plt.plot(self.refined_time[0:], self.pos_list[0:], 'g-', label='pos')
+        plt.plot(self.refined_time[0:], self.vel_list[0:], 'b-,', label='vel')
         print("yaw list", self.yaw_list[0])
         plt.title("Yaw readings from stationary IMU")
         plt.ylabel('Yaw [degrees]')
@@ -61,7 +61,7 @@ class Analyzer:
 
     def main(self):
         self.read_file()
-        #self.scale_seconds()
+        self.scale_seconds()
         self.simple_plot()
 
 

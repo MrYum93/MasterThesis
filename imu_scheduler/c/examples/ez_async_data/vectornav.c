@@ -69,7 +69,7 @@ int imu_init(void){
 	printf("Old Async Frequency: %d Hz\n", oldHz);
 	//if ((error = VnSensor_writeAsyncDataOutputFrequency(&vs, 2, true)) != E_NONE)
 	//	return processErrorReceived("Error writing async data output frequency.", error);
-	if ((error = VnSensor_writeAsyncDataOutputFrequency(&vs, 100, true)) != E_NONE)
+	if ((error = VnSensor_writeAsyncDataOutputFrequency(&vs, 200, true)) != E_NONE)
 		return processErrorReceived("Error writing async data output frequency.", error);
 	if ((error = VnSensor_readAsyncDataOutputFrequency(&vs, &newHz)) != E_NONE)
 		return processErrorReceived("Error reading async data output frequency.", error);
@@ -179,6 +179,7 @@ void asciiAsyncMessageReceived(void *userData, VnUartPacket *packet, size_t runn
 
 	/* then output the yaw data */
 	data = -(ypr.c[0] * M_PI/180);
+	//printf("Yaw %f", data);
 }
 
 void asciiOrBinaryAsyncMessageReceived(void *userData, VnUartPacket *packet, size_t runningIndex)

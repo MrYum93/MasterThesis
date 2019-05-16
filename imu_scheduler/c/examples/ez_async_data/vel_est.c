@@ -39,6 +39,7 @@ volatile long ms_f = 0;
 volatile long signed t_now = 0;
 volatile long signed t_last = 0;
 volatile long signed t_f = 0;
+double time_seconds;
 
 
 /* This method is used to shift the pos list, and then insert a 
@@ -131,18 +132,18 @@ double vel_est_update(double yaw_)
   est_vel_upd_cnt += 1;
 
   /* running at 10.000 Hz, 10.000/100 = 100Hz */
-  if((est_vel_upd_cnt % 100) == 0)
+  if((est_vel_upd_cnt % 50) == 0)
   {
     /* State machine that goes from monitor where the neutral yaw is updated, 
     * and goes to vel estimate of FW */
-
+    
     switch (state)
     {
       case UPDATE_YAW:
         /* neutral yaw takes care of updating the neutral yaw */
         neutral_yaw = neutral_yaw_calc(yaw_);
-
         vel = vel_from_pos(yaw_);
+        printf("Velocity %f\n", vel);
         if(vel_cnt >= 3){
           // printf("vel: %f\n\n", vel);
           /* this thresh needs to be updated to the actual thresh */
@@ -156,8 +157,9 @@ double vel_est_update(double yaw_)
         
         break;
       case REGISTER_VEL:
+        printf("In estimate velocity state\n");
         pos = est_pos(yaw_, neutral_yaw);
-        vel = vel_from_pos(pos) * 1000; /* times 1.000 to go from ms to s */
+        vel = vel_from_pos(pos); /* times 1.000 to go from ms to s */
         if(vel_cnt >= 3){
           return_vel = vel;
         }
@@ -194,18 +196,21 @@ double vel_from_pos(double pos_)
   clock_gettime(CLOCK_MONOTONIC, &time_now);
   ms_now = round(time_now.tv_nsec / 1000000); /* is nano sec with 1 billion, and mili with 1 mil*/
   t_now = 1000 * time_now.tv_sec + ms_now;//time_now.tv_nsec;  
-  
+  time_seconds = (double)t_now;
+  printf("t_now %li\n", t_now);
+  time_seconds = time_seconds/1000;
+  printf("time_seconds %f\n", time_seconds);
   double sub_vel;
 
   pos_insert(pos_);
   /* this makes it so elem 0 is the newest and elem 2 is oldest */
   /* printf("pos 0 %f\n", pos_l[0]);
   printf("pos 2 %f\n\n", pos_l[2]); */
-  sub_vel = (pos_l[2]-pos_l[0])/(2*(t_now-t_last));
+  sub_vel = (pos_l[2]-pos_l[0])/(2*(time_seconds-t_last));
   /* printf("h %lu\n", (t_now-t_last));
   printf("vel 0 %f\n\n\n", vel);*/
   ms_last = ms_now;
-  t_last = t_now;
+  t_last = time_seconds;
   return sub_vel;
 }
 
