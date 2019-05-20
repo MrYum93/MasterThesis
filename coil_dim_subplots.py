@@ -7,7 +7,7 @@ import sys
 from plot_system import PlotSystem
 import time
 
-h = 0.016 # one sheet is 4 mm -> 0.004 m. We need at least 4 sheets
+h = 0.012 # one sheet is 4 mm -> 0.004 m. We need at least 4 sheets
 rho = 600
 r = 0.2 # best between 0.2 and 0.25
 delta_r = 0.0125 # with 0.0125 it should be run 4 times
@@ -72,7 +72,7 @@ while r < 0.25:
             print(rope_on_one_coil)
             print(circumference)
             print("rope on one coil: ", rope_on_one_coil/circumference)
-            exit()
+            #exit()
 
         t += delta_t
 
@@ -96,7 +96,7 @@ plt.plot(container_l[0][6], container_l[2][4], "b-", label=r2)
 plt.plot(container_l[0][6], container_l[3][4], "c-", label=r3)
 plt.ylabel('Rad/s')
 plt.xlabel("Time")
-plt.title("motor vel")
+plt.title("coil vel")
 plt.legend()
 
 plt.subplot(2, 2, 2)
@@ -106,7 +106,7 @@ plt.plot(container_l[0][6], container_l[2][3], "b-", label=r2)
 plt.plot(container_l[0][6], container_l[3][3], "c-", label=r3)
 plt.ylabel('Rad/s^2')
 plt.xlabel("Time")
-plt.title("motor acc")
+plt.title("coil acc")
 plt.legend()
 
 plt.subplot(2, 2, 3)
