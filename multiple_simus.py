@@ -17,6 +17,7 @@ import matplotlib.pyplot as plt
 import sys
 from plot_system import PlotSystem
 import time
+from numpy.linalg import inv
 
 # defines
 EPS = sys.float_info.min
@@ -31,10 +32,10 @@ class ar_model(object):
         self.cr_verbose = False
         self.right_arm_verbose = False
         #mult sims control
-        self.no_runs_init = 10
+        self.no_runs_init = 1
         self.run_no_init = 0
-        self.change_const_init = 1000#math.pi*0.5/9 #Amount to change
-        self.parameter_change_id = "rope_k"
+        self.change_const_init = 1.5#math.pi*0.5/9 #Amount to change
+        self.parameter_change_id = "fw_init_vel_y"
         self.time_to_run = 0.5
         self.time_to_sleep = 0.001
         self.zero_vel_d_found = False 
@@ -60,15 +61,15 @@ class ar_model(object):
         self.all_purpose_l = []
         self.end_pos_y_l = []
         self.end_pos_x_l = []
-        
+        self.fw_init_vel_y = 8
         self.rope_speed = 0
         self.spring_init_vel = 0
         
         self.time = 0.0
-        self.delta_t = 0.0005
+        self.delta_t = 0.001
 
 
-        self.eqi_change = 0 #(math.pi/2) #<-oriented 90 degrees after 90 runs
+        self.eqi_change = (math.pi/2) #<-oriented 90 degrees after 90 runs
         self.eqi_angle_left = - self.eqi_change
         self.eqi_angle_right = math.pi + self.eqi_change
         self.plane_hooked = False
@@ -80,10 +81,12 @@ class ar_model(object):
         
         self.rope_len = self.neutral_rope_length
         self.rope_k = 29.16
+        self.rope_f_l = []
+
 
         self.plane_mass = 0.7
         self.plane_pos = np.array([0, 0, 0]) #The plane starts one meter before the docking station before it is hooked
-        self.plane_vel = np.array([0, 8.8, 0])
+        self.plane_vel = np.array([0, self.fw_init_vel_y, 0])
         self.plane_acc = np.array([0, 0, 0])
         self.plane_displacement = 0
         self.plane_k_e = 1/2 * self.plane_mass * self.plane_vel**2
@@ -114,7 +117,7 @@ class ar_model(object):
         self.e_plane = 0
         self.e_spring = 0
         self.e_loss = 10  # percent. Might not be usaable
-
+        self.plane_y_vel_l = []
 
         #From init model
         self.plane_hooked = False
@@ -179,23 +182,61 @@ class ar_model(object):
         self.motor_l_alpha = 0
         self.motor_l_radius = 0.2 #The radius where the rope are coiled
         self.motor_force = 0
-        self.motor_holding_torque = 2#0.19 #ish
+        self.motor_holding_torque = 3#0.19 #ish
 
         self.motor_phase = 1
         self.motor_theta_list = []
         self.motor_omega_list = []
         self.motor_alpha_list = []
         #103H7823-1740 https://docs-emea.rs-online.com/webdocs/141d/0900766b8141d50f.pdf
-        self.motor_inertia = 0.000084
-        self.motor_load_inertia = 0.00803026571
+        self.motor_inertia = 1#0.000084
+        self.motor_load_inertia = 1#0.00803026571
         self.motor_pull_out_torque = 1  #This is a worst case estimate
-        self.motor_max_alpha = self.motor_pull_out_torque/(self.motor_load_inertia+self.motor_inertia) #t = I * alpha <=> alpha = t/i
+        self.motor_max_alpha = 100#self.motor_pull_out_torque/(self.motor_inertia) #t = I * alpha <=> alpha = t/i
         #Right motor
         #self.motor_r_thetha
         #self.motor_r_omega
         #self.motor_r_alpha
         #self.motor_r_radius #The radius where the rope are coiled
 
+    def least_squares_est(self, x_vec, y_vec): #Wikipedia got the math https://en.wikipedia.org/wiki/Polynomial_regression
+                                        #Where this is based on ordinary least square https://en.wikipedia.org/wiki/Ordinary_least_squares
+        #We need n>m, we cant make an estiamte on underfitted data
+        X = np.array([1, 0, 0])
+        for x in x_vec:
+            x_row = np.array([1, x, x**2])
+            X = np.vstack([X, x_row])
+            print("x_value", x)
+        X = np.delete(X, (0), axis=0)    
+        print("X_matrix", X)        
+        Y = np.vstack(y_vec)
+        print("Y", Y)
+        #co = np.array()
+        co = np.matmul(inv(np.matmul(np.transpose(X), X)), np.matmul(np.transpose(X), Y))
+        print("Wiki method", co)
+        #k0, k1, k2
+        #OBS make sure that the constants are in the right order
+        k2, k1, k0 = np.linalg.lstsq(X, Y)[0]
+        #print("Constants", k0, k1, k2)
+        k2 = -k2
+        #t1 = np.arange(0.0, 5.0, 0.1)
+        t = np.arange(x_vec[0], x_vec[-1]+0.5, 0.01)
+        print("Constants", k0, k1, k2)
+        print("t last ele and x last ele", t[-1], x_vec[-1])
+        def f(x):
+            return co[0]+co[1]*x+co[2]*x**2 
+        plt.plot(x_vec, y_vec, 'o', label='Original data', markersize=10)
+        
+
+        plt.plot(t, f(t), 'r', label='Fitted line')
+        plt.legend()
+        plt.show()
+        '''
+        array([[ 0,  1,  2,  3,  4],
+       [ 5,  6,  7,  8,  9],
+       [10, 11, 12, 13, 14],
+       [15, 16, 17, 18, 19]])
+        '''
     def vector_init(self):
         self.eqi_angle_left = 0 - self.eqi_change
         self.eqi_angle_right = math.pi + self.eqi_change
@@ -383,14 +424,28 @@ class ar_model(object):
                 pos_prev = y_pos_estimate
                 prev_t = self.time_l[time_counter]
                 time_counter += 1
+        #Lets make a list sampling from the estimate position at the IMU rate
+        imu_freq = 200
+        no_elements = 10
+        counter = 100
+        t_list = [] 
+        pos_list = []
+    
+        while len(pos_list) < no_elements + 1:
+            #print("Modolus magic", self.est_t_l[counter] % 0.005 < 0.0001)
+            if self.est_t_l[counter] % 0.005  < 0.0001: #We hit the time which the IMU samples at
+                t_list.append(self.est_t_l[counter])
+                pos_list.append(self.est_pos_list[counter])
+            counter += 1
 
+        self.least_squares_est(t_list ,pos_list)
 
 
 
         #plot
         #lets get indixes right
         fig = plt.figure
-        print("ffs")
+        
         new = []
         for item in self.plane_pos_l:
             new_i = item[1]
@@ -539,11 +594,19 @@ class ar_model(object):
         plt.legend()
         plt.show()
 
+    def save_csv(self, title, list_1, list_2, list_3):
+        f = open(title + ".csv", "w+")
+        index_count = 0
+        for item in list_1:
+            line = str(item) + ", " + str(list_2[index_count])+ ", " + str(list_3[index_count]) + "\n"
+            f.write(line)
+            index_count += 1
+        f.close()
+
     def plot_fw_raw(self):
         plot_pos = []
         plot_vel = []
         plot_acc = []
-        
         for item in self.plane_pos_l:
             pos = item[1]
             plot_pos.append(pos)
@@ -552,6 +615,7 @@ class ar_model(object):
             vel = item[1]
             plot_vel.append(vel)
         
+        self.save_csv(str(self.fw_init_vel_y)+" init vel", self.time_l, plot_pos, plot_vel)
         #for item in self.plane_acc_l:
         #    print("acc item 1", item)
         #    acc = item[1]
@@ -942,12 +1006,14 @@ class ar_model(object):
                     self.motor_l_omega += self.motor_l_alpha*self.delta_t
                     self.motor_l_theta += self.motor_l_omega*self.delta_t
                     self.rope_len = self.neutral_rope_length + self.motor_l_theta * self.motor_l_radius
-                    print("Accelerating", self.rope_len)
+                    self.rope_k = 72.9/self.rope_len
+                    print("Accelerating", self.rope_len, self.rope_k)
                 elif de_accelerate:
                     self.motor_l_alpha = -self.motor_max_alpha
                     self.motor_l_omega += self.motor_l_alpha*self.delta_t
                     self.motor_l_theta += self.motor_l_omega*self.delta_t
                     self.rope_len = self.neutral_rope_length + self.motor_l_theta * self.motor_l_radius
+                    self.rope_k = 72.9/self.rope_len
                     print("De accelerating")
                 
                 #old_len =new_len
@@ -957,14 +1023,28 @@ class ar_model(object):
                 print("Target speed acquired")
                 self.motor_phase = 2
         if self.motor_phase == 2:
-            #In this phase the motor should de accelerate the plane and therefore add force to the two ropes        
-            self.motor_l_alpha = -self.motor_max_alpha
-            self.motor_l_omega += self.motor_l_alpha*self.delta_t        
-            self.motor_l_theta += self.motor_l_omega*self.delta_t
-            self.rope_len = self.neutral_rope_length + self.motor_l_theta * self.motor_l_radius
+            #In this phase the motor should de accelerate the plane and therefore add force to the two ropes   
+            # The elastic rope is a problem in this phase, but lets try to look at the velocity of the FW and make the rope longer when its positive and lesser when its negative     
+            if self.plane_vel[1] > 0:
+                de_accelerate = True
+            else:
+                accelerate = True
+            if accelerate:
+                self.motor_l_alpha = self.motor_max_alpha
+                self.motor_l_omega += self.motor_l_alpha*self.delta_t        
+                self.motor_l_theta += self.motor_l_omega*self.delta_t
+                self.rope_len = self.neutral_rope_length + self.motor_l_theta * self.motor_l_radius
+                self.rope_k = 72.9/self.rope_len
+            if de_accelerate:
+                self.motor_l_alpha = -self.motor_max_alpha
+                self.motor_l_omega += self.motor_l_alpha*self.delta_t        
+                self.motor_l_theta += self.motor_l_omega*self.delta_t
+                self.rope_len = self.neutral_rope_length + self.motor_l_theta * self.motor_l_radius
+                self.rope_k = 72.9/self.rope_len
+            
             #motor_torque = motor_radius * motor_force
-            motor_torque = self.motor_holding_torque
-            self.motor_force = motor_torque/self.motor_l_radius
+            #motor_torque = self.motor_holding_torque
+            #self.motor_force = motor_torque/self.motor_l_radius
             
             
             
@@ -973,9 +1053,7 @@ class ar_model(object):
             #if self.rope_len - self.neutral_rope_length > -0.1 and self.rope_len - self.neutral_rope_length < 0.1:
             #    self.motor_phase = 3
             
-            if self.motor_l_omega < 0:
-                self.motor_l_omega = 0
-                self.motor_phase = 4
+           
             
             
             #if self.plane_vel[1] - 0.0 > -0.3 and self.plane_vel[1] - 0.0  < 0.3:
@@ -985,6 +1063,7 @@ class ar_model(object):
         #Skal vi have kode der kan estimere hastigheden ud fra yaw - inden vi går videre med hardware til systemet?
             #Check
         #
+        ''' Lets just put the motor in a stop phase after phase 2
         if self.motor_phase == 3:
             #This phase the motors tries to go to a home position, where the rope has the start length
             self.motor_force 
@@ -1008,9 +1087,9 @@ class ar_model(object):
 
             if self.rope_len - self.neutral_rope_length > -0.05 and self.rope_len - self.neutral_rope_length < 0.05:
                 self.motor_phase = 3
-
-        if self.motor_phase == 4:
-            self.motor_force = 0
+        '''
+        if self.motor_phase == 3:
+            #self.motor_force = 0
             self.motor_l_alpha = 0
             self.motor_l_omega = 0   
         print("Motor state", self.motor_phase)
@@ -1060,8 +1139,7 @@ class ar_model(object):
         self.neutral_rope_length = self.half_distane_poles-abs(self.arm_length*math.cos(self.eqi_angle_right))
         self.theta_right = self.eqi_angle_right#math.atan2(self.start_position_vector_right_arm[1], self.start_position_vector_right_arm[0])
         self.theta_left = self.eqi_angle_left#math.atan2(self.start_position_vector_left_arm[1], self.start_position_vector_left_arm[0])
-    
-    
+        self.plane_vel[1] = self.fw_init_vel_y    
 
     def main(self):
         no_runs = self.no_runs_init #keep local copy so we can re init every run
@@ -1107,7 +1185,7 @@ class ar_model(object):
                 rope_before = self.rope_len
                 
                 #MOTOR call
-                #self.left_motor(plane_hooked)
+                #self.left_motor(self.plane_hooked)
                 
                 
                 rope_after = self.rope_len
@@ -1155,6 +1233,8 @@ class ar_model(object):
                 else:
                     self.left_rope_theta_list.append(math.atan2(self.plane_pos[1]-lra_y, self.plane_pos[0]-lra_x))
                 self.f_spring_system = f_rope_l + f_rope_r
+                self.rope_f_l.append(math.sqrt(f_rope_l[0]**2+f_rope_l[1]**2))
+
                 #f_damping = -f_spring_system*0.1
                 #f_spring_system += f_damping
                 #print("f_rope_r", f_rope_r)
@@ -1173,16 +1253,19 @@ class ar_model(object):
                     #y_force = force_on_plane/self.plane_mass #Maybe move this to main
                     #braking_de_acc = np.array([0.0, y_acc, 0.0])
 
+                    ''' The plane needs to be accelerated through the rope force!
                     if self.motor_phase == 2:
                         force_on_plane = 2*(self.motor_force*math.sin(self.theta_left)) # We have two motors therefore multiplying by two
                         self.f_spring_system[1] += force_on_plane
-                        
+                    '''
+
                     self.plane_acc = self.f_spring_system / self.plane_mass
-                        
+                    
                 if self.plane_verbose:
                     print("Plane acc", self.plane_acc)
+                print("plane acc", self.plane_acc)
                 self.plane_vel = self.plane_vel + self.plane_acc * self.delta_t
-                
+                self.plane_y_vel_l.append(self.plane_vel[1])
                 self.plane_pos = self.plane_pos + self.plane_vel * self.delta_t
                 
                 #Check if the plane is hooked to the rope yet
@@ -1224,16 +1307,18 @@ class ar_model(object):
                     self.placement_v_r[1]], 
                     [self.placement_v_r[0]+self.position_vector_right_arm[0], 
                     self.placement_v_r[1]+self.position_vector_right_arm[1]]]
-                    extra_vec = [self.time, 0, 0, 0]#[self.start_position_vector_right_arm[0]-self.arm_length*math.cos(self.theta_right), self.start_position_vector_right_arm[1]-self.arm_length*math.sin(self.theta_right), self.start_position_vector_right_arm[0], self.start_position_vector_right_arm[1]]#extra_vec = [right_rope_anchor[0], right_rope_anchor[1], f_rope_r[0], f_rope_r[1]]
-                    plot.update_plot(plane_plot, [0, 0], [0, 0], left_rope, right_rope, left_arm, right_arm, extra_vec) #Plane[ x, y, x vel, y vel], [0, 0], [0, 0], left_rope[armx, army, planex, planey], 
+                    extra_vec = [self.time, 0, self.f_spring_system[0], self.f_spring_system[1]]#[self.start_position_vector_right_arm[0]-self.arm_length*math.cos(self.theta_right), self.start_position_vector_right_arm[1]-self.arm_length*math.sin(self.theta_right), self.start_position_vector_right_arm[0], self.start_position_vector_right_arm[1]]#extra_vec = [right_rope_anchor[0], right_rope_anchor[1], f_rope_r[0], f_rope_r[1]]
+                    motor_list = [self.motor_l_theta, self.motor_l_omega, self.motor_l_alpha, 0.0]
+                    plot.update_plot(plane_plot, [0, 0], [0, 0], left_rope, right_rope, left_arm, right_arm, extra_vec, motor_list) #Plane[ x, y, x vel, y vel], [0, 0], [0, 0], left_rope[armx, army, planex, planey], 
                                                                     #[[self.start_right_rope_anchor[0]-self.vras_x, self.start_right_rope_anchor[1]-self.vras_y], [right_rope_anchor[0], right_rope_anchor[1]]]
                     #right_rope[armx, army, planex, planey], left_arm[centerx, centery, endpointx, endpointy], right_arm[centerx, centery, endpointx, endpointy]
                     time.sleep(self.time_to_sleep)
             #after 1 run saving
             # theta err save and plotplotting_list.append(self.calc_theta_err()) #also saves the list
             #self.plot_plane_acc()
+            self.save_csv("Rope_force", self.time_l, self.rope_f_l, self.plane_y_vel_l)
             self.plot_fw_raw()
-            #self.est_vel_y_alligned(self.left_arm_theta_list)
+            self.est_vel_y_alligned(self.left_arm_theta_list)
             plotting_list.append(self.calc_theta_err())#plotting_list.append(self.plane_acc_l)
             
             run_no += 1

@@ -48,17 +48,17 @@ from matplotlib.ticker import FormatStrFormatter
 
 class CSV_to_speed(object):
     def __init__(self):
-        self.csv_folder_path = '../data/test4_5/optitrack/'
+        self.csv_folder_path = 'last_tests/'
         # Following line lists all files in the folder you look for
         self.csv_files = [f for f in listdir(self.csv_folder_path) if isfile(join(self.csv_folder_path, f))]
         self.frame_rate = 0
-        self.an_x = [] #Hopefully one pole
+        self.an_x = [] #Right pole
         self.an_y = []
         self.an_z = []
 
         self.ano_x = []
         self.ano_y = []
-        self.ano_z = [] #Hopefully another pole
+        self.ano_z = [] #Left pole
 
         self.debug = False
         self.time_list =[]
@@ -263,7 +263,7 @@ class CSV_to_speed(object):
 
     def plot_xyz(self, x, y, z, time, title="Optitrack data analysis of"): 
         ##THis makes more sense 
-        
+        #print("X elems", x)
         if self.specific_debug:
             print("Time list in plot xyz", time)
         temp_y = y
@@ -279,8 +279,17 @@ class CSV_to_speed(object):
         
         #0 = x*a+y*b+z*c 
 
-        x, y, z, new_time = self.remove_extensive_points(x, y, z, True, False, False, 2, -0.2, 1.9350396428571442, time)
-        
+        hook_x = -0.96 #-0.88
+        hook_y = -0.2 #The hook point is probably more forward
+        hook_z = 2.066
+
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d')
+        ax.scatter(x, y, z, label="Optitrack FW estimate")
+        ax.scatter(self.an_x, self.an_y, self.an_z, label ="Right pole marker") #an = right ano = left
+        ax.scatter(self.ano_x, self.ano_y, self.ano_z, label ="Left pole marker") 
+        x, y, z, new_time = self.remove_extensive_points(x, y, z, False, False, False, hook_x-0.3, -2, hook_z-0.10, time)
+        plt.show()
         #SMall print loop
         counter = 0
         for item in y:
@@ -289,14 +298,12 @@ class CSV_to_speed(object):
         
         
         
-        hook_x = -0.18
-        hook_y = 0.21240174301 + 0.12 #The hook point is probably more forward
-        hook_z = 2.120824179487176
+     
         self.find_dist_to_hooking_point(x, y, z, 0.0, hook_x, hook_y, hook_z, new_time)
         fig = plt.figure()
         ax = fig.add_subplot(111, projection='3d')
         ax.scatter(x, y, z, label="Optitrack FW estimate")
-        ax.scatter(self.an_x, self.an_y, self.an_z, label ="Left pole marker") #an = right ano = left
+        ax.scatter(self.an_x, self.an_y, self.an_z, label ="Right pole marker") #an = right ano = left
         right_pole_com = [0.0, 0.0, 0.0]
         left_pole_com = [0.0, 0.0, 0.0]
         
@@ -325,17 +332,20 @@ class CSV_to_speed(object):
         print("left pole COM", left_pole_com)
         rope_l_x = []
         rope_l_y = []
-
-        x_it = (left_pole_com[0]+right_pole_com[0])/100 + left_pole_com[0] + 2*abs((left_pole_com[0]+right_pole_com[0])/100)
-        print("INFO", x_it, left_pole_com[0], right_pole_com[0])
-        while x_it > left_pole_com[0] and x_it < right_pole_com[0]:
+        left_pole_com[2] = right_pole_com [2] #As the z value for the right marker is closer to the rope
+        #x_it = (left_pole_com[0]+right_pole_com[0])/100 + left_pole_com[0] + 2*abs((left_pole_com[0]+right_pole_com[0])/100)
+        y_it = abs(left_pole_com[1])+ abs(right_pole_com[1]) + left_pole_com[1]
+        #print("INFO", x_it, left_pole_com[0], right_pole_com[0])
+        a =  right_pole_com[0] - left_pole_com[0] #Hoejre har en laver vaerdi
+        b = left_pole_com[1] - right_pole_com[1]
+        while y_it > left_pole_com[0] and y_it < right_pole_com[0]:
             #print(x_it, right_pole_com)
-            y = (-2.120824179487176 -0.785763*x_it)/(-11.8599*0.785763)
-            x = ((+11.8599*0.785763)*y-2.120824179487176) /(0.785763)
+            x =  (-right_pole_com[0] - b*y_it)/a# ax+by=-right_pole_com[0] <=> x = (-right_pole_com[0] - b*y)/a
+            y =  (-right_pole_com[0] - a*x)/b #ax+by=-right_pole_com[0] <=> y = (-right_pole_com[0] - a*x_it)/b 
             rope_l_x.append(x)
             rope_l_y.append(y)
             #.append([x, y, 2.120824179487176])
-            x_it += abs(((left_pole_com[0]+right_pole_com[0])/50))
+            y_it += 0.1
             #print("Delta", ((left_pole_com[0]+right_pole_com[0])/50))
 
         ax.scatter(rope_l_x, rope_l_y, right_pole_com[2], label="Estimated rope")
@@ -445,6 +455,13 @@ class CSV_to_speed(object):
         #an_x = []
         #an_y = []
         #an_z = []
+        t_elem = 0
+        lpx = 0
+        lpy = 0
+        lpz = 0
+        rpx = 0
+        rpy = 0
+        rpz = 0
         with open(path) as csv_file:
             csv_reader = csv.reader(csv_file, delimiter=',')
             line_count = 0
@@ -458,17 +475,33 @@ class CSV_to_speed(object):
                     time_list.append(row[1])
                 curr_time += 1 / float(self.frame_rate)
 
+                for i in range(len(row)):
+                    if row[i] == "left_pole":
+                        lpx = i + 4
+                        lpz = i + 5
+                        lpy = i + 6
+                        break
+
+                for i in range(len(row)):
+                    if row[i] == "right_pole":
+                        rpx = i + 4
+                        rpz = i + 5
+                        rpy = i + 6
+                        break
+
+                print("RPX", rpx)
+
                 if line_count > 7:
-                    if row[6] is not '' and row[7] is not '' and row[8] is not '':
-                        self.an_x.append(float(row[6]))
-                        self.an_y.append(float(row[8]))
-                        self.an_z.append(float(row[7]))
+                    if row[rpx] is not '' and row[rpy] is not '' and row[rpz] is not '':
+                        self.an_x.append(float(row[rpx]))
+                        self.an_y.append(float(row[rpy]))
+                        self.an_z.append(float(row[rpz]))
                 
                 if line_count > 7:
-                    if row[26] is not '' and row[27] is not '' and row[28] is not '':
-                        self.ano_x.append(float(row[26]))
-                        self.ano_y.append(float(row[28]))
-                        self.ano_z.append(float(row[27])) #y is z and vice versa
+                    if row[lpx] is not '' and row[lpy] is not '' and row[lpz] is not '':
+                        self.ano_x.append(float(row[lpx]))
+                        self.ano_y.append(float(row[lpy]))
+                        self.ano_z.append(float(row[lpz])) #y is z and vice versa
                 
                 #if line_count == 1:
                 #    self.frame_rate = row[7]
@@ -476,11 +509,11 @@ class CSV_to_speed(object):
                 if line_count == 4:
                     # print('{:>3}'.format(line_count), row)
                     for i in range(len(row)):
-                        if row[i] == "drone":
+                        if row[i] == "Drone":
                             x_elem = i + 4
                             y_elem = i + 5
                             z_elem = i + 6
-                            t_elem = i - 42
+                            t_elem = i - 1
                             break
                 if line_count == 7:
                     # print("xyz:", row[6:9])
