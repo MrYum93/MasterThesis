@@ -72,7 +72,7 @@ while r < 0.25:
             print(rope_on_one_coil)
             print(circumference)
             print("rope on one coil: ", rope_on_one_coil/circumference)
-            exit()
+            #exit()
 
         t += delta_t
 
