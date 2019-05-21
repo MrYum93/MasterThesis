@@ -143,8 +143,7 @@ double vel_est_update(double yaw_)
         /* neutral yaw takes care of updating the neutral yaw */
         neutral_yaw = neutral_yaw_calc(yaw_);
         vel = vel_from_pos(yaw_);
-        printf("Velocity %f\n", vel);
-        if(vel_cnt >= 3){
+        if(vel_cnt >= 1){
           // printf("vel: %f\n\n", vel);
           /* this thresh needs to be updated to the actual thresh */
           if (vel >= (M_PI/180)/5){
@@ -152,19 +151,25 @@ double vel_est_update(double yaw_)
             vel_cnt = 0;
           }
         }
-        else
+        else{
+          vel = vel_from_pos(yaw_);
+          vel = vel_from_pos(yaw_);
           vel_cnt += 1;      
+        }
         
         break;
       case REGISTER_VEL:
         printf("In estimate velocity state\n");
         pos = est_pos(yaw_, neutral_yaw);
-        vel = vel_from_pos(pos); /* times 1.000 to go from ms to s */
-        if(vel_cnt >= 3){
+        vel = vel_from_pos(pos) * 1000; /* times 1.000 to go from ms to s */
+        if(vel_cnt >= 1){
           return_vel = vel;
         }
-        else
+        else{
+          pos = est_pos(yaw_, neutral_yaw);
+          pos = est_pos(yaw_, neutral_yaw);
           vel_cnt += 1;
+        }
         
         break;
       case FINISHED:
