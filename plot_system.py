@@ -114,7 +114,7 @@ class PlotSystem(object):
         self.right_theta = math.pi
         self.hooked_flag = False
 
-    def update_plot(self, plane, left_pole, right_pole, left_rope, right_rope, left_spring, right_spring, extra_vec):
+    def update_plot(self, plane, left_pole, right_pole, left_rope, right_rope, left_spring, right_spring, extra_vec, motor_list):
         clf()
         plt.grid(True)
         # yaw = int(yaw)
@@ -139,6 +139,7 @@ class PlotSystem(object):
         self.plot_torsion_spring(left_spring[0], left_spring[1])
         self.plot_torsion_spring(right_spring[0], right_spring[1])
         self.plot_extra_vector(extra_vec[0], extra_vec[1], extra_vec[2], extra_vec[3])
+        self.show_motor_data(motor_list[0], motor_list[1], motor_list[2], motor_list[3])
 
         self.fig.canvas.flush_events()      
 
@@ -147,7 +148,21 @@ class PlotSystem(object):
 
     def plot_extra_vector(self, pos_x, pos_y, mag_x, mag_y):
         string = "t= %f" %(pos_x)
-        plt.text(0, -0.2, string) #plt.arrow(pos_x, pos_y, mag_x, mag_y, head_width=0.1, head_length=0.1)
+        plt.text(0, -0.2, string) #p
+        plt.arrow(0, 0, mag_x, mag_y, head_width=0.1, head_length=0.1)
+    
+    def show_motor_data(self, theta, omega, alpha, state):
+        theta_string = "Theta= %f" %(theta)
+        plt.text(-3, 4, theta_string)
+        
+        omega_string = "Omega= %f" %(omega)
+        plt.text(-3, 3, omega_string)
+
+        alpha_string = "alpha= %f" %(alpha)
+        plt.text(-3, 2, alpha_string)
+
+        state_string = "state= %f" %(state)
+        plt.text(-3, 1, state_string)
 
     def plot_rope(self, anchor1, anchor2):
         plt.plot([anchor1[0], anchor2[0]], [anchor1[1], anchor2[1]], 'r-')

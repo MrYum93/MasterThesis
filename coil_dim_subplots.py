@@ -74,9 +74,10 @@ while r >= start_r and r < start_r + 4 * delta_r:
             circumference = r*2*math.pi
             rope_total_len = 20
             rope_on_one_coil = (20 - 5) / 2
-            # print(rope_on_one_coil)
-            # print(circumference)
-            # print("rope on one coil: ", rope_on_one_coil/circumference)
+
+            print(rope_on_one_coil)
+            print(circumference)
+            print("rope on one coil: ", rope_on_one_coil/circumference)
             #exit()
 
         t += delta_t
