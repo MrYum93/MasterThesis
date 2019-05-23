@@ -51,6 +51,7 @@ class speed_from_pos_IMU(object):
         self.csv_files = [f for f in listdir(self.csv_folder_path) if isfile(join(self.csv_folder_path, f))]
 
         self.pos_l = []  # pos
+        self.yaw_l = []  # yaw
         self.time_l = []  # time
 
     def plot_diff_np(self, time_l, pos_l):
@@ -134,9 +135,9 @@ class speed_from_pos_IMU(object):
         plt.ylabel('Plane y velocity', fontsize=16)
 
         plt.subplot(3, 1, 3)
-        plt.plot(x, ddy, 'r')
+        plt.plot(x, self.yaw_l, 'r')
         plt.xlabel('Time', fontsize=18)
-        plt.ylabel('Plane y acceleration', fontsize=16)
+        plt.ylabel('Arm yaw', fontsize=16)
 
         plt.show()
 
@@ -158,8 +159,9 @@ class speed_from_pos_IMU(object):
                     continue
 
                 self.time_l.append(float(row[0])/1000)  # convert time-unit to sec.
-                                                        # Run at 200Hz so should be equal to 0.005
-                self.pos_l.append(float(row[2]))        # FW
+                                                        # Run at 20Hz so should be equal to 0.05
+                self.yaw_l.append(float(row[1]))        # yaw
+                self.pos_l.append(float(row[2]))        # FW pos
 
             print(self.time_l[0] - self.time_l[1])
             time_zero = self.time_l[0]
