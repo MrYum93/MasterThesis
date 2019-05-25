@@ -50,11 +50,19 @@ class speed_from_pos_IMU(object):
         self.csv_folder_path = '../data/test6_vectorNav_opti/'
         self.csv_files = [f for f in listdir(self.csv_folder_path) if isfile(join(self.csv_folder_path, f))]
 
-        self.pos_l = []  # pos
-        self.yaw_l = []  # yaw
-        self.time_l = []  # time
+        self.opti_data_path = '../data/test6_vectorNav_opti/Optitrack_from_mark_3_20.csv'
 
-    def plot_diff_np(self, time_l, pos_l):
+        # global lists
+        self.imu_pos_l = []  # pos
+        self.imu_vel_l = []  # vel
+        self.imu_yaw_l = []  # yaw
+        self.imu_time_l = []  # time
+
+        self.opti_pos_l = []  # pos
+        self.opti_vel_l = []  # vel
+        self.opti_time_l = []  # time
+
+    def plot_diff_simple_np(self, time_l, pos_l):
 
         x = time_l
         y = pos_l
@@ -107,8 +115,23 @@ class speed_from_pos_IMU(object):
 
         return dx
 
+    def plot_pos_only(self, time_l, pos_l_imu, pos_l_opti, title='Position of FW from OptiTrack and IMU estimate'):
+        x = time_l
+        y = pos_l_imu
+        y2 = pos_l_opti
+        # y = [item[1] for item in pos_list]
+        # print("y", y)
 
-    def plot_diff(self, time_l, pos_l):
+        plt.title(title, fontsize=20)
+        plt.plot(x, y, 'r-', label='IMU estimate')
+        plt.plot(x, y2, 'g-', label='OptiTrack Data')
+        plt.xlabel('Time [s]', fontsize=12)
+        plt.ylabel('Plane y pos [m]', fontsize=12)
+
+        plt.show()
+
+
+    def plot_diff(self, time_l, pos_l, opt_data=[], title='plots'):
         x = time_l
         y = pos_l
         # y = [item[1] for item in pos_list]
@@ -117,14 +140,8 @@ class speed_from_pos_IMU(object):
         dy = self.diff(x, y)
         ddy = self.diff(x, dy)
 
-        # Remove the last two points bc of spike in acceleration
-        # x = x[:-2]
-        # y = y[:-2]
-        # dy = dy[:-2]
-        # ddy = ddy[:-2]
-
         plt.subplot(3, 1, 1)
-        plt.title("Plane movement along the y-axis")
+        plt.title(title)
         plt.plot(x, y, 'r-')
         plt.xlabel('Time', fontsize=18)
         plt.ylabel('Plane y pos', fontsize=16)
@@ -134,22 +151,33 @@ class speed_from_pos_IMU(object):
         plt.xlabel('Time', fontsize=18)
         plt.ylabel('Plane y velocity', fontsize=16)
 
-        plt.subplot(3, 1, 3)
-        plt.plot(x, self.yaw_l, 'r')
-        plt.xlabel('Time', fontsize=18)
-        plt.ylabel('Arm yaw', fontsize=16)
+        if len(opt_data) is 0:
+            plt.subplot(3, 1, 3)
+            plt.plot(x, ddy, 'r')
+            plt.xlabel('Time', fontsize=18)
+            plt.ylabel('Plane y acceleration', fontsize=16)
+        else:
+            plt.subplot(3, 1, 3)
+            plt.plot(x, opt_data, 'r')
+            plt.xlabel('Time', fontsize=18)
+            plt.ylabel('opt data', fontsize=16)
 
         plt.show()
 
-    def load_csv(self, folder):
-        # if no folder is provided use the first
-        if folder == '':
-            folder = self.csv_files[0]
+        return dy, ddy
 
-        path = self.csv_folder_path + folder
+    def load_imu_csv(self, file=''):
+        # if no folder is provided use the first
+        if file == '':
+            file = self.csv_files[0]
+
+        path = self.csv_folder_path + file
         # print('path:', path)
-        pos_l = []
-        time_list = []
+
+        self.imu_time_l.append(0.0)  # convert time-unit to sec.
+        # Run at 20Hz so should be equal to 0.05
+        self.imu_yaw_l.append(0.0)  # yaw
+        self.imu_pos_l.append(0.0)  # placeholder for the first 0 pos
 
         with open(path) as csv_file:
             csv_reader = csv.reader(csv_file, delimiter=',')
@@ -158,33 +186,92 @@ class speed_from_pos_IMU(object):
                 if row[0] == 'time':
                     continue
 
-                self.time_l.append(float(row[0])/1000)  # convert time-unit to sec.
+                if float(row[2]) == 0.0:  # FW pos
+                    self.imu_time_l[0] = float(row[0])/1000
+                    self.imu_yaw_l[0] = float(row[1])
+                    self.imu_pos_l[0] = float(row[2])
+                    continue
+
+                if float(float(row[0])/1000) > 40459.05058:
+                    continue
+
+                # print("time, yaw", float(row[0])/1000, float(row[2]))
+                self.imu_time_l.append(float(row[0])/1000)  # convert time-unit to sec.
                                                         # Run at 20Hz so should be equal to 0.05
-                self.yaw_l.append(float(row[1]))        # yaw
-                self.pos_l.append(float(row[2]))        # FW pos
+                self.imu_yaw_l.append(float(row[1]))        # yaw
+                self.imu_pos_l.append(float(row[2]))        # FW pos
 
-            print(self.time_l[0] - self.time_l[1])
-            time_zero = self.time_l[0]
-            for i in range(len(self.time_l)):
-                self.time_l[i] -= time_zero
+            # print(self.imu_time_l[0] - self.imu_time_l[1])
+            time_zero = self.imu_time_l[0]
+            for i in range(len(self.imu_time_l)):
+                self.imu_time_l[i] -= time_zero
 
+    def load_opti_csv(self, time_index=0, pos_index=1):
+        path = self.opti_data_path
+
+        pos_l = []
+        vel_l = []
+        time_l = []
+        with open(path) as csv_file:
+            csv_reader = csv.reader(csv_file, delimiter=',')
+            for row in csv_reader:
+                # Out-comment the lines below to get before hooking point, looks nice
+                if float(row[pos_index]) < 0:
+                    continue
+                time_l.append(float(row[time_index]))  # time
+                pos_l.append(float(row[pos_index]))  # pos
+
+            time_zero = time_l[0]
+            for i in range(len(time_l)):
+                time_l[i] -= time_zero
+
+        return time_l, pos_l
+
+    def compare_lists_w_time(self, list_one, time_l_one, list_two, time_l_two):
+        '''
+        :param list_one: Short list
+        :param list_two: Long list
+        :return:
+        '''
+        i = 0
+        j = 0
+        pos_one_list = []
+        pos_two_list = []
+        for i in range(len(list_one)):
+            time_in_tile_l_one = time_l_one[i]
+            pos_one_list.append(list_one[i])
+            for j in range(len(time_l_two)):
+                if time_in_tile_l_one + 0.01 > time_l_two[j] and time_in_tile_l_one - 0.01 < time_l_two[j]:
+                    pos_two_list.append(list_two[j])
+                    print("time vs time", time_in_tile_l_one, time_l_two[j])
+                    break
+        print(pos_one_list)
+        print(pos_two_list)
+
+
+        # error = [abs(i - j) / i * 100 for i, j in zip(pos_one_list, pos_two_list)]
+        error = [abs(j - i) / j * 100 for i, j in zip(pos_one_list, pos_two_list)]
+        # print("Len of lists", len(list_one), len(list_two))
+        print("Error on points", error)
+
+        return pos_one_list[0:7], pos_two_list[0:7]
 
     def run(self):
-        self.load_csv('vel_est_test_3_33.txt')
-        self.plot_diff(self.time_l, self.pos_l)
-        # self.plot_diff_np(self.time_l, self.pos_l)
+        # Load the imu data from test6
+        self.load_imu_csv('vel_est_test_3_33.txt')
+        self.imu_vel_l, _ = self.plot_diff(self.imu_time_l, self.imu_pos_l, self.imu_yaw_l, title='data from imu')
+
+        # load the optitrack data from test6 that Mark has refined
+        self.opti_time_l, self.opti_pos_l = self.load_opti_csv(time_index=0, pos_index=1)
+        self.opti_vel_l, _ = self.plot_diff(self.opti_time_l, self.opti_pos_l, title='optitrack data')
+
+        imu_list, opti_list = self.compare_lists_w_time(self.imu_pos_l, self.imu_time_l, self.opti_pos_l, self.opti_time_l)
+
+        print(len(imu_list), len(opti_list))
+        self.plot_pos_only(self.imu_time_l[0:7], imu_list, opti_list)
 
 
 if __name__ == "__main__":
     reader = speed_from_pos_IMU()
     reader.run()
-
-
-
-
-
-
-
-
-
 
