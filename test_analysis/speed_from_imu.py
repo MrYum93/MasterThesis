@@ -47,10 +47,10 @@ from matplotlib.ticker import FormatStrFormatter
 
 class speed_from_pos_IMU(object):
     def __init__(self):
-        self.csv_folder_path = '../data/test6_vectorNav_opti/'
+        self.csv_folder_path = '../data_for_git/test6_vectorNav_opti/'
         self.csv_files = [f for f in listdir(self.csv_folder_path) if isfile(join(self.csv_folder_path, f))]
 
-        self.opti_data_path = '../data/test6_vectorNav_opti/Optitrack_from_mark_3_20.csv'
+        self.opti_data_path = '../data_for_git/test6_vectorNav_opti/Optitrack_from_mark_3_20.csv'
 
         # global lists
         self.imu_pos_l = []  # pos
@@ -123,6 +123,7 @@ class speed_from_pos_IMU(object):
         # print("y", y)
 
         plt.title(title, fontsize=20)
+        plt.grid(color='k')
         plt.plot(x, y, 'r-', label='IMU estimate')
         plt.plot(x, y2, 'g-', label='OptiTrack Data')
         plt.xlabel('Time [s]', fontsize=12)
