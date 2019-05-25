@@ -1,0 +1,8 @@
+{
+    "files.associations": {
+        "ezasyncdata.h": "c",
+        "vectornav.h": "c",
+        "sensors.h": "c",
+        "read_encoder_wiringpi.h": "c"
+    }
+}
