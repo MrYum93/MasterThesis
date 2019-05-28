@@ -63,6 +63,11 @@ class CSV_to_speed(object):
         self.debug = False
         self.time_list =[]
         self.specific_debug = True
+
+        self.hook_x = 0
+        self.hook_y = 0
+        self.hook_z = 0
+
   #cv = 1 2 .. [6 7 8]
     def remove_extensive_points(self, x_l, y_l, z_l, over_x, over_y, over_z, filter_x, filter_y, filter_z, t_l):
         if self.debug:
@@ -198,9 +203,12 @@ class CSV_to_speed(object):
         for item in x:
             dis = self.calc_dis(x[list_counter], y[list_counter], z[list_counter], hx, hy, hz)
             #delta_dis = dis-last_dis
+            if y[list_counter] < self.hook_y:
+                dis = -dis
             dis_l.append(dis)
             time_list.append(time[list_counter])
             list_counter += 1
+            
             
         '''
         while True:
@@ -283,12 +291,13 @@ class CSV_to_speed(object):
             print("y, z, t", item, z[counter], new_time[counter])
             counter += 1
         
+        		
+
         
-        
-        hook_x = -0.18
-        hook_y = 0.21240174301 
-        hook_z = 2.120824179487176
-        self.find_dist_to_hooking_point(x, y, z, 0.0, hook_x, hook_y, hook_z, new_time)
+        self.hook_x = -0.212705#-0.18
+        self.hook_y = 0.578234#0.21240174301hook
+        self.hook_z =  2.07391#2.120824179487176
+        self.find_dist_to_hooking_point(x, y, z, 0.0, self.hook_x, self.hook_y, self.hook_z, new_time)
         fig = plt.figure()
         ax = fig.add_subplot(111, projection='3d')
         ax.scatter(x, y, z, label="Optitrack FW estimate")
