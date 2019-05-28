@@ -139,17 +139,18 @@ class PlotSystem(object):
         self.plot_torsion_spring(left_spring[0], left_spring[1])
         self.plot_torsion_spring(right_spring[0], right_spring[1])
         self.plot_extra_vector(extra_vec[0], extra_vec[1], extra_vec[2], extra_vec[3])
-        self.show_motor_data(motor_list[0], motor_list[1], motor_list[2], motor_list[3])
+        #self.show_motor_data(motor_list[0], motor_list[1], motor_list[2], motor_list[3])
 
         self.fig.canvas.flush_events()      
 
     def plot_plane(self, pos_x, pos_y, vel_x, vel_y):
-        plt.arrow(pos_x, pos_y, vel_x, vel_y, head_width=0.05, head_length=0.1)
+        plt.arrow(pos_x, pos_y, vel_x/2, vel_y/2, head_width=0.2, head_length=0.1)
 
     def plot_extra_vector(self, pos_x, pos_y, mag_x, mag_y):
         string = "t= %f" %(pos_x)
         plt.text(0, -0.2, string) #p
-        plt.arrow(0, 0, mag_x, mag_y, head_width=0.1, head_length=0.1)
+        plt.text(2, 5, "Force on FW * 10^-1")
+        plt.arrow(3, 5, mag_x/10, mag_y/10, head_width=0.1, head_length=0.1)
     
     def show_motor_data(self, theta, omega, alpha, state):
         theta_string = "Theta= %f" %(theta)

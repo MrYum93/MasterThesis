@@ -279,7 +279,7 @@ class CSV_to_speed(object):
         
         #0 = x*a+y*b+z*c 
 
-        hook_x = -0.96 #-0.88
+        hook_x = -1 #-0.88
         hook_y = -0.2 #The hook point is probably more forward
         hook_z = 2.066
 
@@ -333,19 +333,26 @@ class CSV_to_speed(object):
         rope_l_x = []
         rope_l_y = []
         left_pole_com[2] = right_pole_com [2] #As the z value for the right marker is closer to the rope
+        direction_vec = left_pole_com-right_pole_com
+        def parametric_line(t):
+            return direction_vec*t+left_pole_com
+        t = 0
+        while t < 1:
+            print("Para line", parametric_line(t))
+            t += 0.01
         #x_it = (left_pole_com[0]+right_pole_com[0])/100 + left_pole_com[0] + 2*abs((left_pole_com[0]+right_pole_com[0])/100)
-        y_it = abs(left_pole_com[1])+ abs(right_pole_com[1]) + left_pole_com[1]
+        #y_it = abs(left_pole_com[1])+ abs(right_pole_com[1]) + left_pole_com[1]
         #print("INFO", x_it, left_pole_com[0], right_pole_com[0])
-        a =  right_pole_com[0] - left_pole_com[0] #Hoejre har en laver vaerdi
-        b = left_pole_com[1] - right_pole_com[1]
-        while y_it > left_pole_com[0] and y_it < right_pole_com[0]:
+        #a =  right_pole_com[0] - left_pole_com[0] #Hoejre har en laver vaerdi
+        #b = left_pole_com[1] - right_pole_com[1]
+        #while y_it > left_pole_com[0] and y_it < right_pole_com[0]:
             #print(x_it, right_pole_com)
-            x =  (-right_pole_com[0] - b*y_it)/a# ax+by=-right_pole_com[0] <=> x = (-right_pole_com[0] - b*y)/a
-            y =  (-right_pole_com[0] - a*x)/b #ax+by=-right_pole_com[0] <=> y = (-right_pole_com[0] - a*x_it)/b 
-            rope_l_x.append(x)
-            rope_l_y.append(y)
+            #x =  (-right_pole_com[0] - b*y_it)/a# ax+by=-right_pole_com[0] <=> x = (-right_pole_com[0] - b*y)/a
+            #y =  (-right_pole_com[0] - a*x)/b #ax+by=-right_pole_com[0] <=> y = (-right_pole_com[0] - a*x_it)/b 
+            #rope_l_x.append(x)
+            #rope_l_y.append(y)
             #.append([x, y, 2.120824179487176])
-            y_it += 0.1
+            #y_it += 0.1
             #print("Delta", ((left_pole_com[0]+right_pole_com[0])/50))
 
         ax.scatter(rope_l_x, rope_l_y, right_pole_com[2], label="Estimated rope")

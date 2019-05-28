@@ -32,7 +32,7 @@ class ar_model(object):
         self.cr_verbose = False
         self.right_arm_verbose = False
         #mult sims control
-        self.no_runs_init = 1
+        self.no_runs_init = 1   
         self.run_no_init = 0
         self.change_const_init = 1.5#math.pi*0.5/9 #Amount to change
         self.parameter_change_id = "fw_init_vel_y"
@@ -61,7 +61,10 @@ class ar_model(object):
         self.all_purpose_l = []
         self.end_pos_y_l = []
         self.end_pos_x_l = []
-        self.fw_init_vel_y = 8
+        self.fw_init_vel_y = 8.4
+
+
+        self.plane_pos_y_l = []
         self.rope_speed = 0
         self.spring_init_vel = 0
         
@@ -69,22 +72,22 @@ class ar_model(object):
         self.delta_t = 0.001
 
 
-        self.eqi_change = (math.pi/2) #<-oriented 90 degrees after 90 runs
+        self.eqi_change = 0# (math.pi/2) #<-oriented 90 degrees after 90 runs
         self.eqi_angle_left = - self.eqi_change
         self.eqi_angle_right = math.pi + self.eqi_change
         self.plane_hooked = False
         self.half_distane_poles = 2.5
-        self.arm_length = 0.4
+        self.arm_length = 0.3
         self.neutral_rope_length = self.half_distane_poles-abs(self.arm_length*math.cos(self.eqi_angle_right))
         self.distance_arms = self.neutral_rope_length *2
          #Both arms
         
         self.rope_len = self.neutral_rope_length
-        self.rope_k = 29.16
+        self.rope_k = 29.16#9000
         self.rope_f_l = []
 
 
-        self.plane_mass = 0.7
+        self.plane_mass = 0.754#0.869
         self.plane_pos = np.array([0, 0, 0]) #The plane starts one meter before the docking station before it is hooked
         self.plane_vel = np.array([0, self.fw_init_vel_y, 0])
         self.plane_acc = np.array([0, 0, 0])
@@ -224,12 +227,34 @@ class ar_model(object):
         print("Constants", k0, k1, k2)
         print("t last ele and x last ele", t[-1], x_vec[-1])
         def f(x):
+            #fit = co[0]+co[1]*x+co[2]*x**2
+            #if fit > biggest_fit:
+            #    biggest_fit = fit
+            #    biggest_time_fit = x
             return co[0]+co[1]*x+co[2]*x**2 
-        plt.plot(x_vec, y_vec, 'o', label='Original data', markersize=10)
-        
+        biggest_time_fit = -co[1]/(2*co[2])
+        biggest_fit = f(biggest_time_fit)
+        plt.plot(x_vec, y_vec, 'o', label='IMU position estimates', markersize=5)
+        pos_list = []
+        biggest_elem = 0
+        biggest_elem_t = 0
+        biggest_counter = 0
+        for item in self.plane_pos_l:
+            if item[1] > biggest_elem:
+                biggest_elem = item[1]
+                biggest_elem_t = self.time_l[biggest_counter]
+            biggest_counter += 1
 
+            pos_list.append(item[1])
+        plt.plot(self.time_l, pos_list, label='Simulation position')
+        plt.plot(biggest_time_fit, biggest_fit, 'x', label='Local maximum of fit', markersize=15)
+        plt.plot(biggest_elem_t, biggest_elem, 'x', label='Local maximum of imulation', markersize=15)
+        print("Maximum simu point", biggest_elem_t, biggest_elem, "Maximum fit point", biggest_time_fit, biggest_fit)
         plt.plot(t, f(t), 'r', label='Fitted line')
         plt.legend()
+        plt.ylabel('FW y position [m]')
+        plt.xlabel("Time [seconds]")
+        plt.title("Accuracy of position estimate compared to simulation")
         plt.show()
         '''
         array([[ 0,  1,  2,  3,  4],
@@ -425,19 +450,23 @@ class ar_model(object):
                 prev_t = self.time_l[time_counter]
                 time_counter += 1
         #Lets make a list sampling from the estimate position at the IMU rate
-        imu_freq = 200
-        no_elements = 10
-        counter = 100
+        imu_freq = 20
+        no_elements = 30
+        counter = 60
         t_list = [] 
         pos_list = []
-    
+        imu_count = 0
         while len(pos_list) < no_elements + 1:
-            #print("Modolus magic", self.est_t_l[counter] % 0.005 < 0.0001)
-            if self.est_t_l[counter] % 0.005  < 0.0001: #We hit the time which the IMU samples at
+            #print("Modolus magic", self.est_t_l[counter] % 0.05)
+            #print(self.est_t_l[counter])
+            #if self.est_t_l[counter] % 0.05  < 0.001: #We hit the time which the IMU samples at
+            if counter % 5 == 0:
                 t_list.append(self.est_t_l[counter])
                 pos_list.append(self.est_pos_list[counter])
+                imu_count = 0
+                print("Counter", counter % 50, len(self.est_t_l))
             counter += 1
-
+        
         self.least_squares_est(t_list ,pos_list)
 
 
@@ -1280,6 +1309,7 @@ class ar_model(object):
                     self.zero_vel_d_found = True
                 #Appending to lists with intresting parameters
                 self.plane_pos_l.append(self.plane_pos)
+                self.plane_pos_y_l.append(self.plane_pos[1])
                 self.plane_vel_l.append(self.plane_vel)
                 self.plane_acc_l.append(self.plane_acc[1])
                 self.total_force_l.append(self.f_spring_system)
@@ -1316,7 +1346,7 @@ class ar_model(object):
             #after 1 run saving
             # theta err save and plotplotting_list.append(self.calc_theta_err()) #also saves the list
             #self.plot_plane_acc()
-            self.save_csv("Rope_force", self.time_l, self.rope_f_l, self.plane_y_vel_l)
+            self.save_csv("x_conf_pos_speed", self.time_l, self.plane_pos_y_l, self.plane_y_vel_l)
             self.plot_fw_raw()
             self.est_vel_y_alligned(self.left_arm_theta_list)
             plotting_list.append(self.calc_theta_err())#plotting_list.append(self.plane_acc_l)
