@@ -44,7 +44,7 @@ import matplotlib.pyplot as plt
 
 class SpeedOfMotor():
     def __init__(self):
-        self.encoder_stepper = pd.read_csv("../data_for_git/encoder_data.txt")
+        self.encoder_stepper = pd.read_csv("../data_for_git/combined_en_st.csv")  # combined_en_st.csv" stepper_data.txt"  # encoder_data.txt")
         self.total_tics = 1024
         self.tick_deg = 360/1024
 
@@ -53,7 +53,8 @@ class SpeedOfMotor():
         # index = self.encoder_stepper.columns
         # print(index)
         time = self.encoder_stepper['time']
-        tics = self.encoder_stepper['tics']
+        freq = self.encoder_stepper[' freq']
+        tics = self.encoder_stepper[' tics']
         rev = 0
         tic_i = 0
         tmp_tic = 0
@@ -64,12 +65,17 @@ class SpeedOfMotor():
         index_inc = 0
         speed_l = []
         time_l = []
+        freq_l = []
+        tics_l = []
         rev_l = []
         for i in range(len(time)-1):# range(int((len(time)-1))):
-            if tics[i] == 0:
-                index_inc = i
-                continue
+            # if tics[i] == 0:
+            #     index_inc = i
+            #     continue
             index = i + index_inc
+            time_l.append(time[i])
+            tics_l.append(tics[i])
+            freq_l.append(1/freq[i])
 
             tic_i = tics[index] - tmp_tic
             if tic_i >= 1024:
@@ -89,17 +95,18 @@ class SpeedOfMotor():
                 deg_old = deg_now
 
                 speed_l.append(tics_speed)#tics[index])
-                time_l.append(time[index])
+                # time_l.append(time[index])
                 # This is here to stop loop early if testing is needed
-                # if len(time_l) > 5:
-                #     break
-            if index == len(time)-5:
-                break
+                if len(time_l) > 5:
+                    break
+            # if index == len(time)-5:
+            #     break
 
         fig = plt.figure()
         plt.xlabel('time')
         plt.ylabel('deg/sec')
-        plt.plot(time_l, speed_l, '-')
+        plt.plot(time_l, freq_l, 'r')
+        plt.plot(time_l, tics_l, 'g')
         plt.show()
 
 if __name__ == "__main__":
